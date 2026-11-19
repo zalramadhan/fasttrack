@@ -1,5 +1,5 @@
 import { DEFAULT_VIDEO_FRAME, type TextAnimation, type TextLayer, type VideoFrame } from "./types";
-import { TYPE_EFFECTS } from "./text-animations";
+import { LOOP_EFFECTS, TYPE_EFFECTS } from "./text-animations";
 
 export type Rect = { left: number; top: number; width: number; height: number };
 
@@ -135,6 +135,11 @@ export type LayerAnimationState = {
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 const easeOutCubic = (progress: number) => 1 - Math.pow(1 - progress, 3);
 
+function hash01(value: number) {
+  const n = Math.sin(value * 127.1 + 311.7) * 43758.5453;
+  return n - Math.floor(n);
+}
+
 /** Enter/exit animation for a layer at a given clip-relative time. */
 export function layerAnimation(
   layer: TextLayer,
@@ -145,6 +150,18 @@ export function layerAnimation(
   const enterRaw = layer.enter === "none" ? 1 : clamp01((time - layer.start) / duration);
   const exitRaw = layer.exit === "none" ? 1 : clamp01((layer.end - time) / duration);
   const progress = Math.min(enterRaw, exitRaw);
+
+  // Tickers run for the whole layer life; exits fade them out.
+  if (LOOP_EFFECTS.has(layer.enter)) {
+    return {
+      alpha: layer.exit === "none" ? 1 : easeOutCubic(exitRaw),
+      scale: 1,
+      offsetY: 0,
+      effect: layer.enter,
+      enter: 1,
+      elapsed: Math.max(0, time - layer.start),
+    };
+  }
 
   if (TYPE_EFFECTS.has(layer.enter) && enterRaw < 1 && enterRaw <= exitRaw) {
     return {
@@ -371,14 +388,20 @@ function drawTypeText(
     x: number,
     y: number,
     alpha: number,
-    options?: { scale?: number; scaleX?: number; rotate?: number; dy?: number },
+    options?: {
+      scale?: number;
+      scaleX?: number;
+      rotate?: number;
+      dx?: number;
+      dy?: number;
+    },
   ) => {
     if (!text) return;
     const textWidth = ctx.measureText(text).width;
     const unitScale = options?.scale ?? 1;
     ctx.save();
     ctx.globalAlpha = baseAlpha * alpha;
-    ctx.translate(x + textWidth / 2, y + (options?.dy ?? 0));
+    ctx.translate(x + textWidth / 2 + (options?.dx ?? 0), y + (options?.dy ?? 0));
     if (options?.rotate) ctx.rotate(options.rotate);
     ctx.scale(unitScale, unitScale * (options?.scaleX ?? 1));
     ctx.translate(-textWidth / 2, 0);
@@ -573,6 +596,274 @@ function drawTypeText(
       const lineWidth = ctx.measureText(line).width;
       drawLine(line, alignX(lineWidth), lineY(index));
     });
+  } else if (effect === "word-mask") {
+    const lines = layout.lines.map((line) => line.split(/(\s+)/).filter(Boolean));
+    const total = lines.reduce((sum, units) => sum + units.filter((u) => u.trim()).length, 0);
+    const stagger = Math.min(0.09, (duration * 0.65) / Math.max(1, total - 1));
+    let wordIndex = 0;
+    lines.forEach((units, lineIndex) => {
+      let lineWidth = 0;
+      units.forEach((unit) => {
+        lineWidth += ctx.measureText(unit).width + spacing;
+      });
+      let x = alignX(Math.max(0, lineWidth - spacing));
+      units.forEach((unit) => {
+        const unitWidth = ctx.measureText(unit).width;
+        if (unit.trim()) {
+          const progress = easeOutCubic(unitProgress(wordIndex * stagger));
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(
+            x - fontSize * 0.06,
+            layout.top + lineIndex * layout.lineHeight - fontSize * 0.05,
+            unitWidth + fontSize * 0.12,
+            layout.lineHeight + fontSize * 0.1,
+          );
+          ctx.clip();
+          drawLine(unit, x, lineY(lineIndex) + (1 - progress) * layout.lineHeight * 1.1);
+          ctx.restore();
+          wordIndex += 1;
+        }
+        x += unitWidth + spacing;
+      });
+    });
+  } else if (effect === "glow-pulse") {
+    const progress = Math.min(1, elapsed / duration);
+    const pulse = 0.5 - 0.5 * Math.cos(progress * Math.PI * 2);
+    ctx.save();
+    ctx.shadowColor = layer.color;
+    ctx.shadowBlur = fontSize * (0.12 + 0.34 * pulse);
+    layout.lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      const lineWidth = ctx.measureText(line).width;
+      drawLine(line, alignX(lineWidth), lineY(index));
+    });
+    ctx.restore();
+  } else if (effect === "rgb-split") {
+    const progress = Math.min(1, elapsed / duration);
+    const envelope = Math.max(0, Math.sin(progress * Math.PI * 3)) * (1 - progress * 0.55);
+    const offset = fontSize * 0.26 * envelope;
+    const jitter = Math.sin(elapsed * 57) * fontSize * 0.07 * envelope;
+    layout.lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      const lineWidth = ctx.measureText(line).width;
+      const x = alignX(lineWidth) + jitter;
+      const y = lineY(index);
+      if (envelope > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = baseAlpha * 0.85 * envelope;
+        ctx.fillStyle = "#ff2d55";
+        ctx.fillText(line, x + offset, y);
+        ctx.fillStyle = "#00e5ff";
+        ctx.fillText(line, x - offset, y);
+        ctx.restore();
+      }
+      drawLine(line, x, y);
+    });
+  } else if (effect === "vhs") {
+    const progress = Math.min(1, elapsed / duration);
+    const settle = 1 - progress;
+    const burst = Math.max(0, Math.sin(progress * Math.PI * 2)) * settle;
+    const step = Math.floor(elapsed * 18);
+    const angle = (hash01(step) * 2 - 1) * 0.14 * burst;
+    const shift = (hash01(step + 7) * 2 - 1) * fontSize * 0.09 * burst;
+    const centerY = layout.top + (layout.lines.length * layout.lineHeight) / 2;
+    ctx.save();
+    ctx.translate(0, centerY);
+    ctx.transform(1, 0, Math.tan(angle), 1, 0, 0);
+    ctx.translate(0, -centerY);
+    layout.lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      const lineWidth = ctx.measureText(line).width;
+      const x = alignX(lineWidth) + shift;
+      const y = lineY(index);
+      if (burst > 0.01) {
+        ctx.save();
+        ctx.globalAlpha = baseAlpha * 0.6 * burst;
+        ctx.fillStyle = "#ff2d55";
+        ctx.fillText(line, x + fontSize * 0.02, y);
+        ctx.fillStyle = "#00e5ff";
+        ctx.fillText(line, x - fontSize * 0.02, y);
+        ctx.restore();
+      }
+      drawLine(line, x, y);
+    });
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(layout.bounds.left - fontSize * 0.2, layout.bounds.top, layout.bounds.width + fontSize * 0.4, layout.bounds.height);
+    ctx.clip();
+    ctx.fillStyle = "#000000";
+    ctx.globalAlpha = baseAlpha * 0.3 * burst;
+    const gap = Math.max(2, fontSize * 0.045);
+    for (let y = layout.bounds.top; y < layout.bounds.top + layout.bounds.height; y += gap) {
+      ctx.fillRect(layout.bounds.left - fontSize * 0.2, y, layout.bounds.width + fontSize * 0.4, 1);
+    }
+    ctx.restore();
+  } else if (effect === "shatter") {
+    setSpacing("0px");
+    const chars = layout.lines.map((line) => Array.from(line));
+    const total = chars.reduce((sum, line) => sum + line.length, 0);
+    const stagger = Math.min(0.045, (duration * 0.55) / Math.max(1, total - 1));
+    let charIndex = 0;
+    chars.forEach((lineChars, lineIndex) => {
+      let lineWidth = 0;
+      lineChars.forEach((char) => {
+        lineWidth += ctx.measureText(char).width + spacing;
+      });
+      let x = alignX(Math.max(0, lineWidth - spacing));
+      lineChars.forEach((char) => {
+        const charWidth = ctx.measureText(char).width;
+        if (char.trim()) {
+          const progress = easeOutCubic(unitProgress(charIndex * stagger));
+          const dx = (hash01(charIndex * 3 + 1) * 2 - 1) * fontSize * 0.9 * (1 - progress);
+          const dy = (hash01(charIndex * 3 + 2) * 2 - 1) * fontSize * 0.7 * (1 - progress);
+          const rotate = (hash01(charIndex * 3 + 3) * 2 - 1) * 0.5 * (1 - progress);
+          paint(char, x, lineY(lineIndex), progress, {
+            dx,
+            dy,
+            rotate,
+            scale: 1.25 - 0.25 * progress,
+          });
+          charIndex += 1;
+        }
+        x += charWidth + spacing;
+      });
+    });
+  } else if (effect === "slice-shift") {
+    const progress = Math.min(1, elapsed / duration);
+    const settle = 1 - progress;
+    const slices = 6;
+    const blockTop = layout.top - fontSize * 0.15;
+    const blockHeight = layout.lines.length * layout.lineHeight + fontSize * 0.3;
+    layout.lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      const lineWidth = ctx.measureText(line).width;
+      drawLine(line, alignX(lineWidth), lineY(index));
+    });
+    for (let slice = 0; slice < slices; slice++) {
+      const shift =
+        Math.sin(progress * Math.PI * 2 + slice * 0.9) *
+        fontSize *
+        0.18 *
+        settle *
+        (slice % 2 === 0 ? 1 : -1);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, blockTop + (slice * blockHeight) / slices, width, blockHeight / slices + 1);
+      ctx.clip();
+      ctx.translate(shift, 0);
+      layout.lines.forEach((line, index) => {
+        if (!line.trim()) return;
+        const lineWidth = ctx.measureText(line).width;
+        drawLine(line, alignX(lineWidth), lineY(index));
+      });
+      ctx.restore();
+    }
+  } else if (effect === "scramble") {
+    const progress = Math.min(1, elapsed / duration);
+    const frame = Math.floor(elapsed * 24);
+    const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ!<>-_/[]{}=+*^?#";
+    const total = layout.lines.reduce((sum, line) => sum + Array.from(line).length, 0);
+    const revealed = Math.floor(progress * total);
+    let charIndex = 0;
+    layout.lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      const chars = Array.from(line);
+      const text = chars
+        .map((char) => {
+          const current = charIndex;
+          charIndex += 1;
+          if (/\s/.test(char) || current < revealed) return char;
+          const pick = Math.floor(hash01(frame * 97 + current * 13) * charset.length);
+          return charset[pick] ?? "?";
+        })
+        .join("");
+      const lineWidth = ctx.measureText(text).width;
+      drawLine(text, alignX(lineWidth), lineY(index));
+    });
+  } else if (effect === "caret-sweep") {
+    const progress = easeOutCubic(Math.min(1, elapsed / duration));
+    const reveal = layout.widest * progress;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(
+      layout.blockLeft - fontSize * 0.1,
+      layout.top - fontSize * 0.35,
+      reveal + fontSize * 0.2,
+      layout.lines.length * layout.lineHeight + fontSize * 0.7,
+    );
+    ctx.clip();
+    layout.lines.forEach((line, index) => {
+      if (!line.trim()) return;
+      const lineWidth = ctx.measureText(line).width;
+      drawLine(line, alignX(lineWidth), lineY(index));
+    });
+    ctx.restore();
+    ctx.fillStyle = layer.color;
+    ctx.fillRect(
+      layout.blockLeft + reveal,
+      layout.top - fontSize * 0.2,
+      Math.max(1.5, fontSize * 0.045),
+      layout.lines.length * layout.lineHeight + fontSize * 0.4,
+    );
+  } else if (
+    effect === "vertical-ticker" ||
+    effect === "marquee" ||
+    effect === "diagonal-ticker"
+  ) {
+    const rows = layout.lines.length ? layout.lines : [" "];
+    const gap = fontSize * 0.75;
+    const centerY = layout.top + (layout.lines.length * layout.lineHeight) / 2;
+    const loopSpeed = layer.loopSpeed ?? 1;
+    const speed = fontSize * (effect === "vertical-ticker" ? 1.6 : 2.1) * loopSpeed;
+
+    if (effect === "vertical-ticker") {
+      // Fill the whole frame and scroll every line from top to bottom.
+      const lineStep = layout.lineHeight + gap * 0.8;
+      const cycle = lineStep * rows.length;
+      const offset = (elapsed * speed) % cycle;
+      const count = Math.ceil(height / lineStep) + 3;
+      for (let index = -1; index < count; index++) {
+        const row = rows[((index % rows.length) + rows.length) % rows.length];
+        const rowWidth = ctx.measureText(row).width;
+        const y = index * lineStep - offset + layout.lineHeight / 2;
+        if (y < -lineStep || y > height + lineStep) continue;
+        drawLine(row, alignX(rowWidth), y);
+      }
+    } else if (effect === "marquee") {
+      const widest = Math.max(...rows.map((row) => ctx.measureText(row).width));
+      const group = widest + gap;
+      const offset = (elapsed * speed) % group;
+      const blockHeight = rows.length * layout.lineHeight;
+      const startY = centerY - blockHeight / 2 + layout.lineHeight / 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, startY - layout.lineHeight / 2, width, blockHeight + layout.lineHeight);
+      ctx.clip();
+      rows.forEach((row, index) => {
+        const y = startY + index * layout.lineHeight;
+        for (let x = -offset - group; x < width + group; x += group) {
+          drawLine(row, x, y);
+        }
+      });
+      ctx.restore();
+    } else {
+      const widest = Math.max(...rows.map((row) => ctx.measureText(row).width));
+      const group = widest + gap;
+      const span = width * 1.6;
+      const offset = (elapsed * speed) % group;
+      ctx.save();
+      ctx.translate(width / 2, centerY);
+      ctx.rotate((-8 * Math.PI) / 180);
+      rows.forEach((row, index) => {
+        const y = (index - (rows.length - 1) / 2) * layout.lineHeight;
+        for (let x = -span / 2 - offset; x < span / 2; x += group) {
+          drawLine(row, x, y);
+        }
+      });
+      ctx.restore();
+    }
   }
 
   ctx.restore();

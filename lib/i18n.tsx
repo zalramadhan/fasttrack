@@ -165,6 +165,10 @@ const EN = {
   "text.exit": "Exit animation",
   "text.exitNone": "None",
   "text.animDuration": "Animation duration",
+  "text.loopSpeed": "Loop speed",
+  "text.loopHint":
+    "Runs for {duration}, following the layer timing. Adjust it with Show at / Hide at.",
+  "text.loopFullLength": "Match video length",
   "text.x": "Position X",
   "text.y": "Position Y",
   "text.maxWidth": "Max text width",
@@ -373,6 +377,10 @@ const ID: Record<MessageKey, string> = {
   "text.exit": "Animasi keluar",
   "text.exitNone": "Tidak",
   "text.animDuration": "Durasi animasi",
+  "text.loopSpeed": "Kecepatan loop",
+  "text.loopHint":
+    "Berjalan selama {duration}, mengikuti timing layer. Atur lewat Muncul / Hilang.",
+  "text.loopFullLength": "Ikuti durasi video",
   "text.x": "Posisi X",
   "text.y": "Posisi Y",
   "text.maxWidth": "Lebar teks maksimum",

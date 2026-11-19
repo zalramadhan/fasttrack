@@ -26,6 +26,7 @@ import {
   type Clip,
   type ClipTransition,
   type MediaAsset,
+  type TextAnimation,
   type TextLayer,
   type VideoFrame,
 } from "@/lib/types";
@@ -34,6 +35,7 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import LogoMark from "./Logo";
 import { useI18n, type MessageKey } from "@/lib/i18n";
+import { isLoopEffect } from "@/lib/text-animations";
 
 const initialState: ExportUIState = {
   running: false,
@@ -78,6 +80,7 @@ function makeLayer(start: number, end: number, text: string): TextLayer {
     enter: "fade",
     exit: "none",
     animDuration: 0.45,
+    loopSpeed: 1,
   };
 }
 
@@ -278,13 +281,14 @@ export default function Editor({ bootAsset }: Props) {
   );
 
   const previewLayerAnimation = useCallback(
-    (id: string, direction: "enter" | "exit") => {
+    (id: string, direction: "enter" | "exit", effect: TextAnimation) => {
       const target = layers.find((layer) => layer.id === id);
       if (!target) return;
       const anim = clamp(target.animDuration, 0.1, 1.5);
       const preRoll = direction === "enter" ? 0.25 : 0.3;
       const anchor = direction === "enter" ? target.start : target.end - anim;
-      playPreview(Math.max(0, anchor - preRoll), preRoll + anim + 0.6);
+      const length = isLoopEffect(effect) ? 2.2 : preRoll + anim + 0.6;
+      playPreview(Math.max(0, anchor - preRoll), length);
     },
     [layers, playPreview],
   );

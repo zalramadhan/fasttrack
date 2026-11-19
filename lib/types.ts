@@ -42,7 +42,19 @@ export type TextAnimation =
   | "neon"
   | "echo"
   | "track-tighten"
-  | "gradient-sheen";
+  | "gradient-sheen"
+  | "word-mask"
+  | "glow-pulse"
+  | "rgb-split"
+  | "vhs"
+  | "shatter"
+  | "slice-shift"
+  | "scramble"
+  | "caret-sweep"
+  // Typeframes-style loops: active for the whole layer duration.
+  | "vertical-ticker"
+  | "marquee"
+  | "diagonal-ticker";
 
 /** All measurements are in pixels relative to a 1080px short side, then scaled. */
 export type TextLayer = {
@@ -66,6 +78,8 @@ export type TextLayer = {
   enter: TextAnimation;
   exit: TextAnimation;
   animDuration: number;
+  /** Speed multiplier for loop tickers, 1 = normal. */
+  loopSpeed: number;
 };
 
 export type TransitionId = string;

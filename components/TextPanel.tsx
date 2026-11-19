@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { clamp, formatTime } from "@/lib/format";
 import { ensureFont, FONT_WEIGHTS, GOOGLE_FONTS } from "@/lib/fonts";
 import { TEXT_PRESETS } from "@/lib/presets";
-import { TYPE_ANIMATIONS } from "@/lib/text-animations";
+import { isLoopEffect, TYPE_ANIMATIONS } from "@/lib/text-animations";
 import type { TextAlign, TextAnimation, TextLayer, TextTransform } from "@/lib/types";
 import { ChevronDownIcon, PlusIcon, TrashIcon } from "./icons";
 import {
@@ -33,6 +33,7 @@ const STYLE_KEYS = [
   "enter",
   "exit",
   "animDuration",
+  "loopSpeed",
 ] as const;
 
 type LayerStyle = Pick<TextLayer, (typeof STYLE_KEYS)[number]>;
@@ -52,6 +53,7 @@ function pickStyle(layer: TextLayer): LayerStyle {
     enter: layer.enter,
     exit: layer.exit,
     animDuration: layer.animDuration,
+    loopSpeed: layer.loopSpeed,
   };
 }
 
@@ -65,7 +67,11 @@ type Props = {
   onAdd: () => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
-  onPreviewAnimation: (id: string, direction: "enter" | "exit") => void;
+  onPreviewAnimation: (
+    id: string,
+    direction: "enter" | "exit",
+    effect: TextAnimation,
+  ) => void;
 };
 
 function FontPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -434,7 +440,7 @@ export default function TextPanel({
                 onChange={(event) => {
                   const enter = event.target.value as TextAnimation;
                   onChange(layer.id, { enter });
-                  if (enter !== "none") onPreviewAnimation(layer.id, "enter");
+                  if (enter !== "none") onPreviewAnimation(layer.id, "enter", enter);
                 }}
                 className="input"
               >
@@ -443,7 +449,14 @@ export default function TextPanel({
                 <option value="pop">Pop</option>
                 <option value="slide">Slide</option>
                 <optgroup label="Typeframes">
-                  {TYPE_ANIMATIONS.map((option) => (
+                  {TYPE_ANIMATIONS.filter((option) => !option.loop).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Typeframes · loop">
+                  {TYPE_ANIMATIONS.filter((option) => option.loop).map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
@@ -452,12 +465,46 @@ export default function TextPanel({
               </select>
             </Field>
 
+            {isLoopEffect(layer.enter) && (
+              <div className="space-y-1.5">
+                <SliderField
+                  label={t("text.loopSpeed")}
+                  value={Math.round((layer.loopSpeed ?? 1) * 100)}
+                  min={25}
+                  max={300}
+                  step={5}
+                  onChange={(value) => onChange(layer.id, { loopSpeed: value / 100 })}
+                  suffix="%"
+                />
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-[10px] leading-snug text-muted">
+                    {t("text.loopHint", {
+                      duration: formatTime(layer.end - layer.start, true),
+                    })}
+                  </p>
+                  {layer.end < duration - 0.05 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onChange(layer.id, {
+                          end: Math.max(layer.start + 0.1, duration),
+                        })
+                      }
+                      className="focus-ring shrink-0 rounded border border-line px-1.5 py-0.5 text-[10px] font-medium text-ink transition hover:bg-ink/[0.03]"
+                    >
+                      {t("text.loopFullLength")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <FieldGroup label={t("text.exit")}>
               <Segmented<TextAnimation>
                 value={layer.exit}
                 onChange={(exit) => {
                   onChange(layer.id, { exit });
-                  if (exit !== "none") onPreviewAnimation(layer.id, "exit");
+                  if (exit !== "none") onPreviewAnimation(layer.id, "exit", exit);
                 }}
                 options={[
                   { value: "none", label: t("text.exitNone") },
