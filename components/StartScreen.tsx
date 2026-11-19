@@ -12,6 +12,7 @@ import {
 } from "./icons";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
+import LogoMark from "./Logo";
 import { useI18n } from "@/lib/i18n";
 
 type Props = {
@@ -61,9 +62,7 @@ export default function StartScreen({ onReady }: Props) {
       <header className="border-b border-line">
         <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between px-5">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-7 w-7 place-items-center rounded-[8px] bg-ink text-paper">
-              <span className="ml-0.5 block h-0 w-0 border-y-[4px] border-l-[6px] border-y-transparent border-l-current" />
-            </span>
+            <LogoMark className="h-7 w-7 shrink-0 text-ink" />
             <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
               fasttrack
             </span>

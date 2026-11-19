@@ -32,6 +32,7 @@ import {
 import { DownloadIcon, GithubIcon, InstagramIcon, TypeIcon } from "./icons";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
+import LogoMark from "./Logo";
 import { useI18n, type MessageKey } from "@/lib/i18n";
 
 const initialState: ExportUIState = {
@@ -448,9 +449,7 @@ export default function Editor({ bootAsset }: Props) {
       <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-[56px] max-w-[1580px] items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-7 w-7 place-items-center rounded-[8px] bg-ink text-paper">
-              <span className="ml-0.5 block h-0 w-0 border-y-[4px] border-l-[6px] border-y-transparent border-l-current" />
-            </span>
+            <LogoMark className="h-7 w-7 shrink-0 text-ink" />
             <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
               fasttrack
             </span>
