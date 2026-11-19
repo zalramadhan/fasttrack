@@ -108,6 +108,8 @@ export default function Editor({ bootAsset }: Props) {
 
   const previewRef = useRef<PreviewHandle | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const previewStopRef = useRef<number | null>(null);
+  const transitionTypesRef = useRef<Map<string, string> | null>(null);
   const timeRef = useRef(0);
   timeRef.current = time;
 
@@ -239,19 +241,76 @@ export default function Editor({ bootAsset }: Props) {
     requestAnimationFrame(() => previewRef.current?.seek(timeRef.current));
   }, []);
 
+  const clearPreviewStop = useCallback(() => {
+    if (previewStopRef.current !== null) {
+      window.clearTimeout(previewStopRef.current);
+      previewStopRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => clearPreviewStop(), [clearPreviewStop]);
+
+  const playPreview = useCallback(
+    (start: number, seconds: number) => {
+      clearPreviewStop();
+      const from = Math.max(0, start);
+      setPlaying(false);
+      setTime(from);
+      previewRef.current?.seek(from);
+      setPlaying(true);
+      previewStopRef.current = window.setTimeout(() => {
+        previewStopRef.current = null;
+        setPlaying(false);
+      }, Math.max(700, seconds * 1000));
+    },
+    [clearPreviewStop],
+  );
+
   const previewTransition = useCallback(
     (key: string) => {
       const index = clips.findIndex((clip) => clip.key === key);
       const item = timeline[index];
       if (!item || index === 0) return;
-      const start = Math.max(0, item.offset);
-      setPlaying(false);
-      setTime(start);
-      previewRef.current?.seek(start);
-      setPlaying(true);
+      playPreview(item.offset, Math.max(0.9, item.transitionIn + 0.75));
     },
-    [clips, timeline],
+    [clips, timeline, playPreview],
   );
+
+  const previewLayerAnimation = useCallback(
+    (id: string, direction: "enter" | "exit") => {
+      const target = layers.find((layer) => layer.id === id);
+      if (!target) return;
+      const anim = clamp(target.animDuration, 0.1, 1.5);
+      const preRoll = direction === "enter" ? 0.25 : 0.3;
+      const anchor = direction === "enter" ? target.start : target.end - anim;
+      playPreview(Math.max(0, anchor - preRoll), preRoll + anim + 0.6);
+    },
+    [layers, playPreview],
+  );
+
+  // Autoplay the seam as soon as a different transition effect is picked.
+  useEffect(() => {
+    const previous = transitionTypesRef.current;
+    transitionTypesRef.current = new Map(
+      clips.map((clip) => [clip.key, clip.transition.type]),
+    );
+    if (!previous) return;
+
+    const changed = clips.find((clip) => {
+      const before = previous.get(clip.key);
+      return before !== undefined && before !== clip.transition.type;
+    });
+    if (!changed || changed.transition.type === "none") return;
+
+    const index = clips.findIndex((clip) => clip.key === changed.key);
+    const item = timeline[index];
+    if (!item || index === 0) return;
+
+    const timer = window.setTimeout(() => {
+      playPreview(item.offset, Math.max(0.9, item.transitionIn + 0.75));
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [clips, timeline, playPreview]);
 
   const updateLayer = useCallback((id: string, patch: Partial<TextLayer>) => {
     setLayers((prev) =>
@@ -288,18 +347,23 @@ export default function Editor({ bootAsset }: Props) {
     setSelectedId((prev) => (prev === id ? null : prev));
   }, []);
 
-  const handleSeek = useCallback((relative: number) => {
-    setPlaying(false);
-    setTime(relative);
-    previewRef.current?.seek(relative);
-  }, []);
+  const handleSeek = useCallback(
+    (relative: number) => {
+      clearPreviewStop();
+      setPlaying(false);
+      setTime(relative);
+      previewRef.current?.seek(relative);
+    },
+    [clearPreviewStop],
+  );
 
   const handlePlayingChange = useCallback(
     (next: boolean) => {
       if (next && !clips.length) return;
+      clearPreviewStop();
       setPlaying(next);
     },
-    [clips.length],
+    [clips.length, clearPreviewStop],
   );
 
   function focusSource() {
@@ -544,6 +608,7 @@ export default function Editor({ bootAsset }: Props) {
                   onAdd={addLayer}
                   onDelete={deleteLayer}
                   onDuplicate={duplicateLayer}
+                  onPreviewAnimation={previewLayerAnimation}
                 />
                 <div className="flex justify-end">
                   <button type="button" onClick={() => setStep("export")} className="btn">

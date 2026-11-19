@@ -35,7 +35,7 @@ Preview sticky: di layar kecil preview tetap terlihat saat panel pengaturan di-s
 ## Fitur
 
 - **Multi-video berurutan** (maks 6 klip) dengan trim masing-masing; audio semua klip digabung rapi, termasuk klip tanpa audio.
-- **25 transisi** antar klip (gerak, cahaya, sapuan, glitch, distorsi, 3D) dari shader WebGL clipframes. Durasi 0,2–1,5 detik, dibatasi 50% klip terpendek; audio di sambungan di-crossfade.
+- **25 transisi** antar klip (gerak, cahaya, sapuan, glitch, distorsi, 3D) dari shader WebGL clipframes. Durasi 0,2–1,5 detik, dibatasi 50% klip terpendek; audio di sambungan di-crossfade. Memilih efek langsung memutar sambungannya tanpa menekan play.
 - **Sumber**: upload MP4/MOV/WEBM/M4V/MKV (maks 400 MB per video) atau link via yt-dlp. Link Threads publik ditangani browser headless karena halaman Threads tidak menyediakan metadata video untuk request biasa.
 - **Rasio**: 1:1, 4:5, 9:16, 16:9.
 - **Framing video**: zoom 100–250%, geser X/Y, latar **Isi penuh**, **Blur** (kekuatan blur + dim), atau **Warna** (color picker).
@@ -43,7 +43,7 @@ Preview sticky: di layar kecil preview tetap terlihat saat panel pengaturan di-s
 - **Teks**: banyak layer dengan waktu muncul/hilang, font Google (cari & load on-demand), ukuran, ketebalan, kerning, line-height, warna, outline, uppercase/lowercase, rata, lebar maksimum, dan posisi drag di preview. Gaya bisa disalin ke layer lain (Salin/Tempel) tanpa menimpa isi, posisi, atau timing.
 - **Layar awal minimalis** dengan input link/upload, tema terang-gelap, dan tautan GitHub/Instagram; editor baru tampil setelah sumber pertama berhasil dibaca.
 - **Preset gaya**: Clean, Poster, Editorial, Impact, Mono, Soft, Lime, Tag.
-- **Animasi teks**: fade, pop, slide untuk masuk dan keluar, ditambah 10 efek dari katalog typeframes (Line Mask Rise, Word Pop, Char Stagger, Letter Wave, Flip 3D, Typewriter, Neon Flicker, Echo Stack, Track Tighten, Gradient Sheen). Durasi 0,1–1,5 detik; ikut ter-render ke MP4.
+- **Animasi teks**: fade, pop, slide untuk masuk dan keluar, ditambah 10 efek dari katalog typeframes (Line Mask Rise, Word Pop, Char Stagger, Letter Wave, Flip 3D, Typewriter, Neon Flicker, Echo Stack, Track Tighten, Gradient Sheen). Durasi 0,1–1,5 detik; ikut ter-render ke MP4. Memilih animasi masuk/keluar langsung memutar bagian itu, lalu berhenti sendiri.
 - **Bahasa Indonesia / English** dengan switch EN/ID di header; default English, pilihan tersimpan di browser. Semua teks UI dan pesan error ikut berganti bahasa.
 - **Tema terang/gelap** dengan toggle di header, tersimpan di browser.
 - **Export**: H.264 + AAC 48 kHz, faststart, 30 fps.

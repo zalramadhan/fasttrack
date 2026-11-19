@@ -20,7 +20,13 @@ export default function TransitionPanel({ clips, timeline, onChange, onPreview }
   return (
     <Panel
       title={t("transition.title")}
-      action={<span className="chip">{t("transition.seams", { count: clips.length - 1 })}</span>}
+      action={
+        <span className="chip">
+          {t(clips.length === 2 ? "transition.seamsOne" : "transition.seams", {
+            count: clips.length - 1,
+          })}
+        </span>
+      }
     >
       <div className="space-y-2">
         {clips.slice(1).map((clip, offset) => {

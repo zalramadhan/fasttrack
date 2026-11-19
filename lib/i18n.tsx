@@ -80,6 +80,7 @@ const EN = {
 
   "transition.title": "Transitions",
   "transition.seams": "{count} seams",
+  "transition.seamsOne": "{count} seam",
   "transition.cut": "Direct cut",
   "transition.none": "No transition (cut)",
   "transition.previewAria": "Preview transition",
@@ -287,6 +288,7 @@ const ID: Record<MessageKey, string> = {
 
   "transition.title": "Transisi",
   "transition.seams": "{count} sambungan",
+  "transition.seamsOne": "{count} sambungan",
   "transition.cut": "Cut langsung",
   "transition.none": "Tanpa transisi (cut)",
   "transition.previewAria": "Pratinjau transisi",

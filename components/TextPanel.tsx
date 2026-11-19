@@ -65,6 +65,7 @@ type Props = {
   onAdd: () => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onPreviewAnimation: (id: string, direction: "enter" | "exit") => void;
 };
 
 function FontPicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -153,6 +154,7 @@ export default function TextPanel({
   onAdd,
   onDelete,
   onDuplicate,
+  onPreviewAnimation,
 }: Props) {
   const { t } = useI18n();
   const layer = layers.find((item) => item.id === selectedId) ?? null;
@@ -429,9 +431,11 @@ export default function TextPanel({
               <select
                 value={layer.enter}
                 aria-label={t("text.enter")}
-                onChange={(event) =>
-                  onChange(layer.id, { enter: event.target.value as TextAnimation })
-                }
+                onChange={(event) => {
+                  const enter = event.target.value as TextAnimation;
+                  onChange(layer.id, { enter });
+                  if (enter !== "none") onPreviewAnimation(layer.id, "enter");
+                }}
                 className="input"
               >
                 <option value="none">{t("text.noAnimation")}</option>
@@ -451,7 +455,10 @@ export default function TextPanel({
             <FieldGroup label={t("text.exit")}>
               <Segmented<TextAnimation>
                 value={layer.exit}
-                onChange={(exit) => onChange(layer.id, { exit })}
+                onChange={(exit) => {
+                  onChange(layer.id, { exit });
+                  if (exit !== "none") onPreviewAnimation(layer.id, "exit");
+                }}
                 options={[
                   { value: "none", label: t("text.exitNone") },
                   { value: "fade", label: "Fade" },
