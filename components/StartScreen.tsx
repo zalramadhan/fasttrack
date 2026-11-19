@@ -1,0 +1,212 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { importFromLink, uploadMedia } from "@/lib/media";
+import type { MediaAsset } from "@/lib/types";
+import {
+  GithubIcon,
+  InstagramIcon,
+  LinkIcon,
+  SpinnerIcon,
+  UploadIcon,
+} from "./icons";
+import ThemeToggle from "./ThemeToggle";
+import LanguageToggle from "./LanguageToggle";
+import { useI18n } from "@/lib/i18n";
+
+type Props = {
+  onReady: (asset: MediaAsset) => void;
+};
+
+export default function StartScreen({ onReady }: Props) {
+  const { t, errorText } = useI18n();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [link, setLink] = useState("");
+  const [busy, setBusy] = useState<null | "link" | "upload">(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  async function handleFile(file: File | undefined | null) {
+    if (!file || busy) return;
+    setError(null);
+    setBusy("upload");
+    try {
+      const asset = await uploadMedia(file, "video");
+      onReady(asset);
+    } catch (err) {
+      setError(err instanceof Error ? errorText(err.message) : t("common.uploadFailed"));
+      setBusy(null);
+    }
+  }
+
+  async function handleLink() {
+    if (busy) return;
+    if (!link.trim()) {
+      setError(t("common.pasteLinkFirst"));
+      return;
+    }
+    setError(null);
+    setBusy("link");
+    try {
+      const asset = await importFromLink(link.trim());
+      onReady(asset);
+    } catch (err) {
+      setError(err instanceof Error ? errorText(err.message) : t("common.linkFailed"));
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-line">
+        <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between px-5">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-7 w-7 place-items-center rounded-[8px] bg-ink text-paper">
+              <span className="ml-0.5 block h-0 w-0 border-y-[4px] border-l-[6px] border-y-transparent border-l-current" />
+            </span>
+            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
+              fasttrack
+            </span>
+            <span className="hidden text-[11px] text-muted sm:inline">video → mp4</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
+        </div>
+      </header>
+
+      <main className="flex flex-1 flex-col items-center justify-center px-5 py-12 sm:py-16">
+        <div className="w-full max-w-[620px] text-center">
+          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {t("start.badge")}
+          </p>
+
+          <h1 className="mt-5 text-[36px] font-semibold leading-[1.04] tracking-[-0.035em] text-ink sm:text-[46px]">
+            {t("start.titleA")}
+            <br className="hidden sm:block" /> {t("start.titleB")}
+          </h1>
+          <p className="mx-auto mt-4 max-w-[46ch] text-[13.5px] leading-relaxed text-muted sm:text-[14px]">
+            {t("start.subtitle")}
+          </p>
+
+          <div className="mx-auto mt-8 w-full max-w-[540px] text-left">
+            <div className="rounded-[16px] border border-line bg-surface p-2 shadow-[0_24px_60px_-40px_rgba(20,20,25,0.45)] transition focus-within:border-ink/25">
+              <div className="flex items-center gap-1">
+                <LinkIcon className="ml-2 h-4 w-4 shrink-0 text-muted" />
+                <input
+                  value={link}
+                  onChange={(event) => setLink(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void handleLink();
+                  }}
+                  placeholder={t("start.linkPlaceholder")}
+                  disabled={busy !== null}
+                  className="h-10 min-w-0 flex-1 bg-transparent px-1.5 text-[13px] text-ink outline-none placeholder:text-muted/70 disabled:opacity-60"
+                  aria-label={t("start.linkAria")}
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleLink()}
+                  disabled={busy !== null}
+                  className="focus-ring inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[10px] bg-ink px-4 text-[12.5px] font-medium text-on-ink transition hover:bg-ink/90 disabled:opacity-60"
+                >
+                  {busy === "link" ? (
+                    <>
+                      <SpinnerIcon className="h-3.5 w-3.5" /> {t("start.fetching")}
+                    </>
+                  ) : (
+                    t("start.create")
+                  )}
+                </button>
+              </div>
+
+              <div className="my-1.5 flex items-center gap-2 px-3 text-[10px] uppercase tracking-[0.12em] text-muted">
+                <span className="h-px flex-1 bg-line" />
+                {t("common.or")}
+                <span className="h-px flex-1 bg-line" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragging(false);
+                  void handleFile(event.dataTransfer.files?.[0]);
+                }}
+                disabled={busy !== null}
+                className={`focus-ring flex w-full items-center justify-center gap-2 rounded-[10px] border border-dashed px-3 py-2.5 text-[12.5px] font-medium text-ink transition disabled:opacity-60 ${
+                  dragging
+                    ? "border-ink/40 bg-ink/[0.04]"
+                    : "border-line-strong hover:border-ink/30 hover:bg-ink/[0.02]"
+                }`}
+              >
+                {busy === "upload" ? (
+                  <SpinnerIcon className="h-3.5 w-3.5" />
+                ) : (
+                  <UploadIcon className="h-3.5 w-3.5" />
+                )}
+                {busy === "upload" ? t("common.uploading") : t("start.chooseFile")}
+              </button>
+            </div>
+
+            <input
+              ref={inputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm,video/x-m4v,video/x-matroska"
+              hidden
+              onChange={(event) => {
+                void handleFile(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+
+            {error && <p className="alert mt-3">{error}</p>}
+
+            <p className="mt-3 text-center text-[11px] leading-relaxed text-muted">
+              {t("start.sources")}
+            </p>
+          </div>
+
+          <p className="mt-8 text-[10.5px] uppercase tracking-[0.14em] text-muted">
+            {t("start.features")}
+          </p>
+        </div>
+      </main>
+
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[10.5px] text-muted">
+            {t("start.legal")}
+          </p>
+          <div className="flex items-center gap-4">
+            <a
+              href="https://github.com/zalramadhan"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition hover:text-ink"
+            >
+              <GithubIcon className="h-3.5 w-3.5" /> GitHub
+            </a>
+            <a
+              href="https://instagram.com/zalsomeone"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition hover:text-ink"
+            >
+              <InstagramIcon className="h-3.5 w-3.5" /> @zalsomeone
+            </a>
+            <span className="hidden text-[10.5px] text-muted/70 sm:inline">{t("start.madeBy")}</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
