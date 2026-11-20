@@ -36,7 +36,7 @@ Setelah daftar, user langsung masuk editor dan mendapat email verifikasi. Editin
 
 Pembayaran dilakukan manual via WhatsApp. User menekan **Upgrade lifetime**, mendapat kode order `FT-XXXXXX`, lalu chat admin dengan kode itu. Admin membuka `/admin`, menekan **Activate lifetime** setelah pembayaran masuk. Tidak ada payment gateway dan tidak ada penagihan otomatis.
 
-Admin ditentukan lewat `ADMIN_EMAIL` (boleh beberapa email dipisah koma); email tersebut otomatis mendapat role admin saat daftar. Isi juga `WHATSAPP_NUMBER` (format internasional tanpa `+`, mis. `62812...`) dan `LIFETIME_PRICE` (rupiah, default `99000`).
+Admin ditentukan lewat `ADMIN_EMAIL` (boleh beberapa email dipisah koma); email tersebut otomatis mendapat role admin saat daftar. Isi juga `WHATSAPP_NUMBER` (format internasional tanpa `+`, mis. `62812...`) dan `LIFETIME_PRICE` (rupiah, default `49000`).
 
 ```bash
 cp .env.example .env.local

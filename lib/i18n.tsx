@@ -428,6 +428,72 @@ const EN = {
   "preview.preparing": "Preparing preview…",
   "preview.proxyFallback": "Preview proxy failed; using the original video.",
 
+  "landing.howLabel": "How it works",
+  "landing.howTitle": "From link to MP4, without leaving the tab.",
+  "landing.howBody":
+    "Paste a link or pick a file, trim up to six clips, then export. The whole edit stays in one browser tab.",
+  "landing.howCta": "Start with a video",
+  "landing.howNote": "No install. Free account, no card.",
+  "landing.step1Title": "Add the video",
+  "landing.step1Body":
+    "Paste a link from YouTube, TikTok, Instagram, Threads, or X, or choose a file up to 400 MB.",
+  "landing.step2Title": "Build the card",
+  "landing.step2Body":
+    "Six clips, 180 seconds. Trim, transitions, framing, text, and music.",
+  "landing.step3Title": "Export MP4",
+  "landing.step3Body": "720p with a watermark on free. 1080p clean on lifetime.",
+  "landing.editorLabel": "Editor",
+  "landing.editorTitle": "What you see in the preview is what comes out.",
+  "landing.editorBody":
+    "Every control sits next to the frame it changes. No hidden panels, no export surprises.",
+  "landing.factClipsLabel": "Clips",
+  "landing.factClipsValue": "6 · 180 seconds",
+  "landing.factTransitionsLabel": "Transitions",
+  "landing.factTransitionsValue": "25 effects",
+  "landing.factTextLabel": "Text",
+  "landing.factTextValue": "Google fonts · animation",
+  "landing.factAudioLabel": "Audio",
+  "landing.factAudioValue": "Original mix · music",
+  "landing.previewLabel": "Preview",
+  "landing.previewBody":
+    "Switch Full, Half, or Quarter when the timeline gets heavy. The proxy is cached; export always uses the original.",
+  "landing.pricingLabel": "Pricing",
+  "landing.pricingTitle": "Start free. Upgrade once.",
+  "landing.pricingBody":
+    "The free plan is enough to post. Lifetime removes the watermark and the ad unlock.",
+  "landing.freeName": "Free",
+  "landing.freePrice": "Rp0",
+  "landing.freePoint1": "720p export at 2 Mbps",
+  "landing.freePoint2": "Small watermark",
+  "landing.freePoint3": "Unlock with ads before each export",
+  "landing.freeCta": "Start free",
+  "landing.lifetimeName": "Lifetime",
+  "landing.lifetimePrice": "{price} once",
+  "landing.lifetimePoint1": "1080p export at 7 or 12 Mbps",
+  "landing.lifetimePoint2": "No watermark",
+  "landing.lifetimePoint3": "No ad unlock, ever",
+  "landing.lifetimeCta": "See upgrade steps",
+  "landing.priceNote": "Activated manually on WhatsApp after payment.",
+  "landing.faqLabel": "FAQ",
+  "landing.faqTitle": "Before you start",
+  "landing.faqBody":
+    "Short answers to the things people ask before their first export.",
+  "landing.faq1Q": "Do I need to install anything?",
+  "landing.faq1A":
+    "No. fasttrack runs in the browser. Upload or paste a link, edit, and export from the same tab.",
+  "landing.faq2Q": "What files can I use?",
+  "landing.faq2A":
+    "MP4, MOV, WEBM, M4V, or MKV up to 400 MB per video. One project holds six clips and 180 seconds in total.",
+  "landing.faq3Q": "What is different about lifetime?",
+  "landing.faq3A":
+    "Free exports are 720p with a watermark and an ad unlock before every export. Lifetime exports 1080p without a watermark or ad unlock.",
+  "landing.faq4Q": "Where are my files stored?",
+  "landing.faq4A":
+    "Uploads and exports stay temporarily on this machine. Nothing is posted automatically.",
+  "landing.faqCta": "Start with a video",
+  "landing.faqCtaBody":
+    "Paste a link or choose a clip. You can create the free account after the video is loaded.",
+
   "theme.toDark": "Switch to dark mode",
   "theme.toLight": "Switch to light mode",
   "theme.darkTitle": "Dark mode",
@@ -851,6 +917,72 @@ const ID: Record<MessageKey, string> = {
   "preview.quarter": "Quarter",
   "preview.preparing": "Menyiapkan preview…",
   "preview.proxyFallback": "Proxy preview gagal; memakai video asli.",
+
+  "landing.howLabel": "Cara kerja",
+  "landing.howTitle": "Dari link ke MP4, tanpa pindah tab.",
+  "landing.howBody":
+    "Tempel link atau pilih file, potong hingga enam klip, lalu export. Semua editing tetap di satu tab browser.",
+  "landing.howCta": "Mulai dari video",
+  "landing.howNote": "Tanpa install. Akun gratis, tanpa kartu.",
+  "landing.step1Title": "Masukkan video",
+  "landing.step1Body":
+    "Tempel link YouTube, TikTok, Instagram, Threads, atau X, atau pilih file sampai 400 MB.",
+  "landing.step2Title": "Susun card",
+  "landing.step2Body":
+    "Enam klip, 180 detik. Trim, transisi, framing, teks, dan musik.",
+  "landing.step3Title": "Export MP4",
+  "landing.step3Body": "720p dengan watermark di free. 1080p bersih di lifetime.",
+  "landing.editorLabel": "Editor",
+  "landing.editorTitle": "Yang kamu lihat di preview, itu yang keluar.",
+  "landing.editorBody":
+    "Setiap kontrol ada di dekat frame yang diubah. Tidak ada panel tersembunyi atau hasil export yang beda.",
+  "landing.factClipsLabel": "Klip",
+  "landing.factClipsValue": "6 · 180 detik",
+  "landing.factTransitionsLabel": "Transisi",
+  "landing.factTransitionsValue": "25 efek",
+  "landing.factTextLabel": "Teks",
+  "landing.factTextValue": "Font Google · animasi",
+  "landing.factAudioLabel": "Audio",
+  "landing.factAudioValue": "Mix asli · musik",
+  "landing.previewLabel": "Preview",
+  "landing.previewBody":
+    "Ganti Full, Half, atau Quarter saat timeline terasa berat. Proxy di-cache; export tetap memakai video asli.",
+  "landing.pricingLabel": "Harga",
+  "landing.pricingTitle": "Mulai gratis. Upgrade sekali.",
+  "landing.pricingBody":
+    "Paket gratis sudah cukup untuk posting. Lifetime menghapus watermark dan unlock iklan.",
+  "landing.freeName": "Gratis",
+  "landing.freePrice": "Rp0",
+  "landing.freePoint1": "Export 720p, 2 Mbps",
+  "landing.freePoint2": "Watermark kecil",
+  "landing.freePoint3": "Unlock with ads sebelum setiap export",
+  "landing.freeCta": "Mulai gratis",
+  "landing.lifetimeName": "Lifetime",
+  "landing.lifetimePrice": "{price} sekali bayar",
+  "landing.lifetimePoint1": "Export 1080p, 7 atau 12 Mbps",
+  "landing.lifetimePoint2": "Tanpa watermark",
+  "landing.lifetimePoint3": "Tanpa unlock iklan, selamanya",
+  "landing.lifetimeCta": "Lihat cara upgrade",
+  "landing.priceNote": "Diaktifkan manual lewat WhatsApp setelah pembayaran.",
+  "landing.faqLabel": "FAQ",
+  "landing.faqTitle": "Sebelum mulai",
+  "landing.faqBody":
+    "Jawaban singkat untuk hal yang paling sering ditanyakan sebelum export pertama.",
+  "landing.faq1Q": "Perlu install aplikasi?",
+  "landing.faq1A":
+    "Tidak. fasttrack jalan di browser. Upload atau tempel link, edit, lalu export dari tab yang sama.",
+  "landing.faq2Q": "File apa saja yang bisa dipakai?",
+  "landing.faq2A":
+    "MP4, MOV, WEBM, M4V, atau MKV sampai 400 MB per video. Satu project menampung enam klip dan total 180 detik.",
+  "landing.faq3Q": "Apa bedanya lifetime?",
+  "landing.faq3A":
+    "Export gratis 720p dengan watermark dan unlock iklan sebelum setiap export. Lifetime export 1080p tanpa watermark atau unlock iklan.",
+  "landing.faq4Q": "File saya disimpan di mana?",
+  "landing.faq4A":
+    "Upload dan export tersimpan sementara di mesin ini. Tidak ada yang diposting otomatis.",
+  "landing.faqCta": "Mulai dari video",
+  "landing.faqCtaBody":
+    "Tempel link atau pilih klip. Akun gratis bisa dibuat setelah videonya masuk.",
 
   "theme.toDark": "Aktifkan mode gelap",
   "theme.toLight": "Aktifkan mode terang",

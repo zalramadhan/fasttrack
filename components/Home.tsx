@@ -20,10 +20,12 @@ export default function Home({
   user,
   savedProject,
   shopeeUrl,
+  lifetimePrice,
 }: {
   user: PublicUser | null;
   savedProject: SavedProjectState | null;
   shopeeUrl: string;
+  lifetimePrice: number;
 }) {
   const { t, errorText } = useI18n();
   const [asset, setAsset] = useState<MediaAsset | null>(null);
@@ -66,7 +68,12 @@ export default function Home({
   }, [asset, errorText, openSaved, t, user]);
 
   if (!user) {
-    return <StartScreen pendingError={pendingError} />;
+    return (
+      <StartScreen
+        pendingError={pendingError}
+        lifetimePrice={lifetimePrice}
+      />
+    );
   }
 
   if (openSaved && savedProject) {
@@ -87,6 +94,7 @@ export default function Home({
         onContinue={() => setOpenSaved(true)}
         pendingError={pendingError}
         preparing={preparing}
+        lifetimePrice={lifetimePrice}
       />
     );
   }

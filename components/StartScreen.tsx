@@ -17,6 +17,7 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import AccountMenu from "./AccountMenu";
 import LogoMark from "./Logo";
+import LandingSections from "./LandingSections";
 import { useI18n } from "@/lib/i18n";
 
 type Props = {
@@ -26,6 +27,7 @@ type Props = {
   onContinue?: () => void;
   pendingError?: string | null;
   preparing?: boolean;
+  lifetimePrice: number;
 };
 
 export default function StartScreen({
@@ -35,6 +37,7 @@ export default function StartScreen({
   onContinue,
   pendingError,
   preparing = false,
+  lifetimePrice,
 }: Props) {
   const { t, errorText, lang } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,8 +133,12 @@ export default function StartScreen({
         </div>
       </header>
 
-      <main className="flex flex-1 flex-col items-center justify-center px-5 py-12 sm:py-16">
-        <div className="w-full max-w-[620px] text-center">
+      <main className="flex-1">
+        <section
+          id="start"
+          className="mx-auto flex min-h-[calc(100dvh-56px)] w-full max-w-6xl scroll-mt-16 flex-col items-center justify-center px-5 py-12 sm:py-16"
+        >
+          <div className="w-full max-w-[620px] text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             {t("start.badge")}
@@ -270,10 +277,13 @@ export default function StartScreen({
             </p>
           </div>
 
-          <p className="mt-8 text-[10.5px] uppercase tracking-[0.14em] text-muted">
-            {t("start.features")}
-          </p>
-        </div>
+            <p className="mt-8 text-[10.5px] uppercase tracking-[0.14em] text-muted">
+              {t("start.features")}
+            </p>
+          </div>
+        </section>
+
+        <LandingSections lifetimePrice={lifetimePrice} />
       </main>
 
       <footer className="border-t border-line">

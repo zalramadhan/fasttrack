@@ -2,7 +2,7 @@ export const APP_NAME = "fasttrack";
 
 export const LIFETIME_PRICE = Math.max(
   0,
-  Number(process.env.LIFETIME_PRICE || 99000),
+  Number(process.env.LIFETIME_PRICE || 49000),
 );
 
 export const WHATSAPP_NUMBER = (process.env.WHATSAPP_NUMBER || "").replace(

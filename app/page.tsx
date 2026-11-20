@@ -1,5 +1,6 @@
 import Home from "@/components/Home";
 import { getCurrentUser } from "@/lib/server/auth";
+import { LIFETIME_PRICE } from "@/lib/server/config";
 import { getProject, getSetting } from "@/lib/server/db";
 import type { SavedProject } from "@/lib/types";
 
@@ -38,6 +39,7 @@ export default async function Page() {
           : null
       }
       shopeeUrl={getSetting("shopee_url") ?? ""}
+      lifetimePrice={LIFETIME_PRICE}
     />
   );
 }
