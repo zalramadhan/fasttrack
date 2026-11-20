@@ -20,7 +20,7 @@ function Step({
   body: string;
 }) {
   return (
-    <li className="grid grid-cols-[34px_1fr] gap-4 py-5 first:pt-0 last:pb-0">
+    <li className="grid grid-cols-[34px_1fr] gap-4 py-4 first:pt-0 last:pb-0">
       <span className="pt-0.5 font-mono text-[11px] text-muted">{number}</span>
       <div>
         <h3 className="text-[14px] font-semibold tracking-[-0.01em] text-ink">
@@ -36,7 +36,7 @@ function Step({
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-t border-line py-3 first:border-t-0 first:pt-0">
+    <div className="py-2 first:pt-0">
       <dt className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted">
         {label}
       </dt>
@@ -58,13 +58,13 @@ export default function LandingSections({
   }).format(lifetimePrice);
 
   return (
-    <div className="divide-y divide-line border-t border-line">
+    <div>
       <section
         id="how"
         aria-labelledby="how-title"
-        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-5 py-16 md:min-h-[calc(100dvh-56px)] md:py-20"
+        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-8 py-8 sm:px-12 sm:py-10 lg:py-12"
       >
-        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16">
           <div>
             <SectionLabel>{t("landing.howLabel")}</SectionLabel>
             <h2
@@ -86,7 +86,7 @@ export default function LandingSections({
             </div>
           </div>
 
-          <ol className="border-y border-line">
+          <ol>
             <Step
               number="01"
               title={t("landing.step1Title")}
@@ -109,7 +109,7 @@ export default function LandingSections({
       <section
         id="editor"
         aria-labelledby="editor-title"
-        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-5 py-16 md:min-h-[calc(100dvh-56px)] md:py-20"
+        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-8 py-8 sm:px-12 sm:py-10 lg:py-12"
       >
         <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-end lg:gap-14">
           <div>
@@ -126,7 +126,7 @@ export default function LandingSections({
             <p className="max-w-[48ch] text-[13px] leading-relaxed text-muted sm:text-[14px]">
               {t("landing.editorBody")}
             </p>
-            <dl className="mt-6 grid grid-cols-2 gap-x-6 border-t border-line">
+            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2">
               <Fact
                 label={t("landing.factClipsLabel")}
                 value={t("landing.factClipsValue")}
@@ -166,7 +166,7 @@ export default function LandingSections({
           </picture>
         </div>
 
-        <div className="mt-5 border-t border-line pt-4">
+        <div className="mt-5">
           <SectionLabel>{t("landing.previewLabel")}</SectionLabel>
           <p className="mt-2 max-w-[62ch] text-[12px] leading-relaxed text-muted">
             {t("landing.previewBody")}
@@ -177,9 +177,9 @@ export default function LandingSections({
       <section
         id="pricing"
         aria-labelledby="pricing-title"
-        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-5 py-16 md:min-h-[calc(100dvh-56px)] md:py-20"
+        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-8 py-8 sm:px-12 sm:py-10 lg:py-12"
       >
-        <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:gap-16">
+        <div className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-center lg:gap-16">
           <div>
             <SectionLabel>{t("landing.pricingLabel")}</SectionLabel>
             <h2
@@ -204,7 +204,7 @@ export default function LandingSections({
               <p className="mt-4 text-[30px] font-semibold tracking-[-0.03em] text-ink">
                 {t("landing.freePrice")}
               </p>
-              <ul className="mt-5 flex-1 space-y-2.5 border-t border-line pt-4 text-[12px] leading-relaxed text-muted">
+              <ul className="mt-4 flex-1 space-y-2.5 text-[12px] leading-relaxed text-muted">
                 <li>{t("landing.freePoint1")}</li>
                 <li>{t("landing.freePoint2")}</li>
                 <li>{t("landing.freePoint3")}</li>
@@ -221,7 +221,7 @@ export default function LandingSections({
               <p className="mt-4 text-[24px] font-semibold tracking-[-0.03em]">
                 {t("landing.lifetimePrice", { price })}
               </p>
-              <ul className="mt-5 flex-1 space-y-2.5 border-t border-on-ink/15 pt-4 text-[12px] leading-relaxed text-on-ink/70">
+              <ul className="mt-4 flex-1 space-y-2.5 text-[12px] leading-relaxed text-on-ink/70">
                 <li>{t("landing.lifetimePoint1")}</li>
                 <li>{t("landing.lifetimePoint2")}</li>
                 <li>{t("landing.lifetimePoint3")}</li>
@@ -240,9 +240,9 @@ export default function LandingSections({
       <section
         id="faq"
         aria-labelledby="faq-title"
-        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-5 py-16 md:min-h-[calc(100dvh-56px)] md:py-20"
+        className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col justify-center px-8 py-8 sm:px-12 sm:py-10 lg:py-12"
       >
-        <div className="grid gap-10 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-16">
+        <div className="grid gap-8 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-16">
           <div>
             <SectionLabel>{t("landing.faqLabel")}</SectionLabel>
             <h2
@@ -262,14 +262,14 @@ export default function LandingSections({
             </p>
           </div>
 
-          <div className="border-t border-line">
+          <div className="space-y-1">
             {([
               ["landing.faq1Q", "landing.faq1A"],
               ["landing.faq2Q", "landing.faq2A"],
               ["landing.faq3Q", "landing.faq3A"],
               ["landing.faq4Q", "landing.faq4A"],
             ] as const).map(([question, answer]) => (
-              <details key={question} className="group border-b border-line py-4">
+              <details key={question} className="group py-3">
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-[13px] font-medium leading-snug text-ink [&::-webkit-details-marker]:hidden">
                   <span>{t(question)}</span>
                   <span className="shrink-0 text-[16px] leading-none text-muted transition group-open:rotate-45">

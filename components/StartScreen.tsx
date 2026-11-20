@@ -136,7 +136,7 @@ export default function StartScreen({
       <main className="flex-1">
         <section
           id="start"
-          className="mx-auto flex min-h-[calc(100dvh-56px)] w-full max-w-6xl scroll-mt-16 flex-col items-center justify-center px-5 py-12 sm:py-16"
+          className="mx-auto flex w-full max-w-6xl scroll-mt-16 flex-col items-center justify-center px-5 py-10 sm:py-14"
         >
           <div className="w-full max-w-[620px] text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-[11px] font-medium text-muted">
