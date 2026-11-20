@@ -3,6 +3,8 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/server/auth";
+import { startPreview } from "@/lib/server/preview";
 import {
   AUDIO_TYPES,
   UPLOADS_DIR,
@@ -21,6 +23,10 @@ const MAX_VIDEO = 400 * 1024 * 1024;
 const MAX_AUDIO = 40 * 1024 * 1024;
 
 export async function POST(req: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Silakan login dulu." }, { status: 401 });
+  }
   try {
     const form = await req.formData();
     const file = form.get("file");
@@ -77,10 +83,15 @@ export async function POST(req: Request) {
       ext,
       size: file.size,
       createdAt: Date.now(),
+      ownerId: user.id,
     };
     await writeJson(path.join(dir, "meta.json"), meta);
 
     void cleanupOld(UPLOADS_DIR);
+    if (kind === "video" && file.size > 20 * 1024 * 1024) {
+      // Warm the half-resolution proxy while the user starts editing.
+      startPreview(meta, "half");
+    }
 
     return NextResponse.json({
       asset: {

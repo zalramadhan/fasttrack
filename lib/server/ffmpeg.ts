@@ -17,6 +17,9 @@ export type ExportJobConfig = {
   outputPath: string;
   duration: number;
   fps: number;
+  width: number;
+  height: number;
+  watermark?: boolean;
   sourceVolume: number;
   musicVolume: number;
   musicOffset: number;
@@ -52,6 +55,9 @@ export function buildArgs(config: ExportJobConfig) {
     outputPath,
     duration,
     fps,
+    width,
+    height,
+    watermark = false,
     sourceVolume,
     musicVolume,
     musicOffset,
@@ -70,7 +76,18 @@ export function buildArgs(config: ExportJobConfig) {
     framesPath,
   ];
 
-  const filters: string[] = ["[0:v]format=yuv420p[v]"];
+  const watermarkPad = Math.max(12, Math.round(height * 0.035));
+  const videoFilters = [
+    `scale=${width}:${height}:force_original_aspect_ratio=decrease`,
+    `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black`,
+    watermark
+      ? `drawtext=font='DejaVu Sans':text='fasttrack':fontcolor=white@0.72:fontsize=${Math.max(14, Math.round(height * 0.04))}:x=w-tw-${watermarkPad}:y=h-th-${watermarkPad}:box=1:boxcolor=black@0.28:boxborderw=${Math.max(6, Math.round(watermarkPad * 0.6))}`
+      : null,
+    "format=yuv420p",
+  ]
+    .filter(Boolean)
+    .join(",");
+  const filters: string[] = [`[0:v]${videoFilters}[v]`];
   const segments: string[] = [];
   let inputIndex = 1;
 

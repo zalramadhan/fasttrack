@@ -13,6 +13,8 @@ export type AssetMeta = {
   ext: string;
   size: number;
   createdAt: number;
+  ownerId?: string;
+  pinnedBy?: string;
 };
 
 export const VIDEO_TYPES: Record<string, string> = {
@@ -93,7 +95,66 @@ export async function readJson<T>(file: string): Promise<T | null> {
   }
 }
 
+export async function pinAsset(id: string, userId: string) {
+  const meta = await readAsset(id);
+  if (!meta) return null;
+  if (meta.ownerId && meta.ownerId !== userId) return null;
+  if (meta.pinnedBy && meta.pinnedBy !== userId) return null;
+  const next: AssetMeta = { ...meta, ownerId: meta.ownerId ?? userId, pinnedBy: userId };
+  await writeJson(path.join(assetDir(id), "meta.json"), next);
+  return next;
+}
+
+export async function unpinAsset(id: string, userId: string) {
+  const meta = await readAsset(id);
+  if (!meta || meta.pinnedBy !== userId) return;
+  const next: AssetMeta = { ...meta };
+  delete next.pinnedBy;
+  await writeJson(path.join(assetDir(id), "meta.json"), next);
+}
+
 /** Opportunistic cleanup so .tmp does not grow unbounded. */
+async function directorySize(dir: string): Promise<{ bytes: number; files: number }> {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    let bytes = 0;
+    let files = 0;
+    await Promise.all(
+      entries.map(async (entry) => {
+        const target = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          const nested = await directorySize(target);
+          bytes += nested.bytes;
+          files += nested.files;
+        } else if (entry.isFile()) {
+          const stat = await fs.stat(target).catch(() => null);
+          if (stat) {
+            bytes += stat.size;
+            files += 1;
+          }
+        }
+      }),
+    );
+    return { bytes, files };
+  } catch {
+    return { bytes: 0, files: 0 };
+  }
+}
+
+export async function storageUsage() {
+  const [uploads, exports] = await Promise.all([
+    directorySize(UPLOADS_DIR),
+    directorySize(EXPORTS_DIR),
+  ]);
+  return {
+    uploadsBytes: uploads.bytes,
+    uploadsFiles: uploads.files,
+    exportsBytes: exports.bytes,
+    exportsFiles: exports.files,
+    totalBytes: uploads.bytes + exports.bytes,
+  };
+}
+
 export async function cleanupOld(dir: string, maxAgeMs = 6 * 60 * 60 * 1000) {
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -102,6 +163,10 @@ export async function cleanupOld(dir: string, maxAgeMs = 6 * 60 * 60 * 1000) {
       entries.map(async (entry) => {
         if (!entry.isDirectory()) return;
         const target = path.join(dir, entry.name);
+        if (dir === UPLOADS_DIR) {
+          const meta = await readJson<AssetMeta>(path.join(target, "meta.json"));
+          if (meta?.pinnedBy) return;
+        }
         const stat = await fs.stat(target).catch(() => null);
         if (stat && now - stat.mtimeMs > maxAgeMs) {
           await fs.rm(target, { recursive: true, force: true }).catch(() => {});

@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "fasttrack — video card editor",
   description:
-    "Combine videos with transitions, trim, text, and music, then export MP4. No account, no watermark.",
+    "Combine videos with transitions, trim, text, and music, then export MP4. Start free, upgrade for clean 1080p.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

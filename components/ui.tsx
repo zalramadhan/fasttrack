@@ -20,7 +20,7 @@ export function Panel({
     <section className={`card overflow-hidden ${className}`}>
       {title && (
         <header className="flex h-10 items-center justify-between border-b border-line px-3.5">
-          <h2 className="label">{title}</h2>
+          <h2 className="card-title">{title}</h2>
           {action}
         </header>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { formatTime } from "@/lib/format";
-import { DownloadIcon, PlusIcon, SpinnerIcon } from "./icons";
+import { DownloadIcon, PlusIcon, ShopeeIcon, SpinnerIcon } from "./icons";
 import { Divider, EmptyHint, FieldGroup, Panel, Segmented } from "./ui";
 import { useI18n } from "@/lib/i18n";
 
@@ -24,14 +24,21 @@ type Props = {
   height: number;
   layerCount: number;
   clipCount: number;
-  resolution: 720 | 1080;
-  onResolution: (value: 720 | 1080) => void;
+  resolution: 360 | 720 | 1080;
+  isPaid: boolean;
+  onResolution: (value: 360 | 720 | 1080) => void;
   quality: "standard" | "high";
   onQuality: (value: "standard" | "high") => void;
   state: ExportUIState;
   onExport: () => void;
   onCancel: () => void;
   onAddVideo: () => void;
+  emailVerified: boolean;
+  shopeeUrl: string;
+  shopeeUnlocked: boolean;
+  shopeeChecking: boolean;
+  shopeeCountdown: number;
+  onShopeeClick: () => void;
 };
 
 export default function ExportPanel({
@@ -42,6 +49,7 @@ export default function ExportPanel({
   layerCount,
   clipCount,
   resolution,
+  isPaid,
   onResolution,
   quality,
   onQuality,
@@ -49,9 +57,15 @@ export default function ExportPanel({
   onExport,
   onCancel,
   onAddVideo,
+  emailVerified,
+  shopeeUrl,
+  shopeeUnlocked,
+  shopeeChecking,
+  shopeeCountdown,
+  onShopeeClick,
 }: Props) {
   const { t } = useI18n();
-  const bitrate = quality === "high" ? 12 : 7;
+  const bitrate = isPaid ? (quality === "high" ? 12 : 7) : 2;
   const estimatedMb = Math.round((bitrate * duration) / 8);
   const frameProgress = state.totalFrames ? state.frame / state.totalFrames : 0;
   const overall =
@@ -62,6 +76,42 @@ export default function ExportPanel({
         : frameProgress * 0.45;
 
   const busy = state.running;
+  const shopeeRequired = !isPaid && !shopeeUnlocked;
+  const canExport = ready && emailVerified && !shopeeRequired;
+  const unlockControl = (
+    <>
+      {shopeeUrl ? (
+        <a
+          href={shopeeUrl}
+          target="_blank"
+          rel="sponsored noopener noreferrer"
+          onClick={onShopeeClick}
+          aria-disabled={shopeeChecking}
+          className="btn w-full border-amber-500 bg-amber-400 text-amber-950 hover:bg-amber-300"
+        >
+          {shopeeChecking ? (
+            <SpinnerIcon className="h-4 w-4" />
+          ) : (
+            <ShopeeIcon className="h-4 w-4" />
+          )}
+          {shopeeChecking
+            ? t("export.unlockChecking", { seconds: String(shopeeCountdown) })
+            : t("export.unlock")}
+        </a>
+      ) : (
+        <button
+          type="button"
+          disabled
+          className="btn w-full border-amber-500 bg-amber-400 text-amber-950 disabled:opacity-60"
+        >
+          <ShopeeIcon className="h-4 w-4" /> {t("export.unlock")}
+        </button>
+      )}
+      <p className="text-[10.5px] leading-relaxed text-muted">
+        {shopeeUrl ? t("export.unlockHint") : t("export.unlockMissing")}
+      </p>
+    </>
+  );
   const stageLabel =
     state.stage === "preparing"
       ? t("export.stagePreparing")
@@ -77,56 +127,74 @@ export default function ExportPanel({
     <Panel title={t("export.title")}>
       <div className="space-y-3">
         <FieldGroup label={t("export.resolution")}>
-          <Segmented<"720" | "1080">
-            value={String(resolution) as "720" | "1080"}
-            onChange={(value) => onResolution(Number(value) as 720 | 1080)}
-            options={[
-              { value: "1080", label: "1080p", title: t("export.fullQuality") },
-              { value: "720", label: "720p", title: t("export.faster") },
-            ]}
-          />
+          {isPaid ? (
+            <Segmented<"720" | "1080">
+              value={String(resolution) as "720" | "1080"}
+              onChange={(value) => onResolution(Number(value) as 720 | 1080)}
+              options={[
+                { value: "1080", label: "1080p", title: t("export.fullQuality") },
+                { value: "720", label: "720p", title: t("export.faster") },
+              ]}
+            />
+          ) : (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-paper/60 px-2.5 py-2">
+              <span className="text-[12px] font-medium text-ink">720p</span>
+              <span className="text-[10px] text-muted">{t("export.free720")}</span>
+            </div>
+          )}
+          {!isPaid && (
+            <p className="mt-2 text-[10.5px] leading-relaxed text-muted">
+              {t("export.freeLocked")}
+            </p>
+          )}
         </FieldGroup>
 
-        <FieldGroup label={t("export.quality")}>
-          <div className="grid grid-cols-2 gap-1.5">
-            {(
-              [
-                {
-                  value: "standard",
-                  title: t("export.defaultQuality"),
-                  bitrate: "7 Mbps",
-                  note: t("export.daily"),
-                },
-                {
-                  value: "high",
-                  title: t("export.high"),
-                  bitrate: "12 Mbps",
-                  note: t("export.sharper"),
-                },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onQuality(option.value)}
-                disabled={busy}
-                className={`focus-ring rounded-lg border px-2.5 py-2 text-left transition ${
-                  quality === option.value
-                    ? "border-ink bg-ink/[0.03]"
-                    : "border-line hover:border-line-strong"
-                }`}
-              >
-                <span className="flex items-baseline justify-between">
-                  <span className="text-[12px] font-medium text-ink">{option.title}</span>
-                  <span className="font-mono text-[10px] text-muted">{option.bitrate}</span>
-                </span>
-                <span className="mt-0.5 block text-[10px] leading-snug text-muted">
-                  {option.note}
-                </span>
-              </button>
-            ))}
+        {isPaid ? (
+          <FieldGroup label={t("export.quality")}>
+            <div className="grid grid-cols-2 gap-1.5">
+              {(
+                [
+                  {
+                    value: "standard",
+                    title: t("export.defaultQuality"),
+                    bitrate: "7 Mbps",
+                    note: t("export.daily"),
+                  },
+                  {
+                    value: "high",
+                    title: t("export.high"),
+                    bitrate: "12 Mbps",
+                    note: t("export.sharper"),
+                  },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onQuality(option.value)}
+                  disabled={busy}
+                  className={`focus-ring rounded-lg border px-2.5 py-2 text-left transition ${
+                    quality === option.value
+                      ? "border-ink bg-ink/[0.03]"
+                      : "border-line hover:border-line-strong"
+                  }`}
+                >
+                  <span className="flex items-baseline justify-between">
+                    <span className="text-[12px] font-medium text-ink">{option.title}</span>
+                    <span className="font-mono text-[10px] text-muted">{option.bitrate}</span>
+                  </span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-muted">
+                    {option.note}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </FieldGroup>
+        ) : (
+          <div className="rounded-lg border border-line bg-paper/60 px-3 py-2.5 text-[11px] leading-relaxed text-muted">
+            {t("export.freePlan")}
           </div>
-        </FieldGroup>
+        )}
 
         <div className="rounded-lg border border-line bg-paper/60 px-2.5 py-2">
           <dl className="space-y-1.5 text-[11.5px]">
@@ -146,6 +214,10 @@ export default function ExportPanel({
         </div>
 
         {!ready && <EmptyHint>{t("export.empty")}</EmptyHint>}
+
+        {!emailVerified && (
+          <p className="alert">{t("export.emailLocked")}</p>
+        )}
 
         {state.stage === "error" && (
           <p className="alert">{state.error}</p>
@@ -181,17 +253,23 @@ export default function ExportPanel({
             <a href={state.downloadUrl} download={state.fileName ?? "fasttrack.mp4"} className="btn btn-primary w-full">
               <DownloadIcon className="h-4 w-4" /> {t("export.download")}
             </a>
-            <button type="button" onClick={onExport} className="btn w-full">
-              {t("export.again")}
-            </button>
+            {shopeeRequired ? (
+              unlockControl
+            ) : (
+              <button type="button" onClick={onExport} className="btn w-full">
+                {t("export.again")}
+              </button>
+            )}
           </div>
         )}
 
-        {!busy && state.stage !== "done" && (
+        {!busy && state.stage !== "done" && shopeeRequired && unlockControl}
+
+        {!busy && state.stage !== "done" && !shopeeRequired && (
           <button
             type="button"
             onClick={onExport}
-            disabled={!ready}
+            disabled={!canExport}
             className="btn btn-primary w-full"
           >
             {state.stage === "preparing" ? (
@@ -199,7 +277,7 @@ export default function ExportPanel({
             ) : (
               <DownloadIcon className="h-4 w-4" />
             )}
-            {t("export.button", { rate: quality === "high" ? "12" : "7" })}
+            {t("export.button", { rate: String(bitrate) })}
           </button>
         )}
 

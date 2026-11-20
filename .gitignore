@@ -1,8 +1,14 @@
 node_modules
 .next
+.env
+.env.local
+.env.*.local
 .tmp
 .tools
 out
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
+
+data/
+.admin-password

@@ -21,6 +21,8 @@ export type StoredExportConfig = {
   fps: number;
   width: number;
   height: number;
+  watermark: boolean;
+  ownerId: string;
   sourceVolume: number;
   musicVolume: number;
   musicOffset: number;
@@ -65,6 +67,8 @@ export async function createExportJob(input: {
   fps: number;
   width: number;
   height: number;
+  watermark: boolean;
+  ownerId: string;
   sourceVolume: number;
   musicVolume: number;
   musicOffset: number;
@@ -78,7 +82,11 @@ export async function createExportJob(input: {
   const clips: ExportClip[] = [];
   for (const clip of input.clips) {
     const source = await readAsset(clip.sourceId);
-    if (!source || source.kind !== "video") {
+    if (
+      !source ||
+      source.kind !== "video" ||
+      (source.ownerId && source.ownerId !== input.ownerId)
+    ) {
       throw new Error("Salah satu video sumber tidak ditemukan, upload ulang.");
     }
     const duration = Math.min(180, Number(clip.duration));
@@ -105,7 +113,13 @@ export async function createExportJob(input: {
 
   if (input.musicId) {
     const music = await readAsset(input.musicId);
-    if (!music || music.kind !== "audio") throw new Error("File musik tidak ditemukan.");
+    if (
+      !music ||
+      music.kind !== "audio" ||
+      (music.ownerId && music.ownerId !== input.ownerId)
+    ) {
+      throw new Error("File musik tidak ditemukan.");
+    }
   }
 
   const fps = input.fps === 24 ? 24 : 30;
@@ -133,10 +147,12 @@ export async function createExportJob(input: {
     fps,
     width,
     height,
+    watermark: input.watermark,
+    ownerId: input.ownerId,
     sourceVolume: Math.min(1, Math.max(0, input.sourceVolume)),
     musicVolume: Math.min(1, Math.max(0, input.musicVolume)),
     musicOffset: Math.max(0, input.musicOffset),
-    bitrateMbps: input.bitrateMbps >= 12 ? 12 : 7,
+    bitrateMbps: Math.max(2, Math.min(12, input.bitrateMbps || 7)),
     totalFrames,
     fileName: `fasttrack-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.mp4`,
   };
@@ -223,6 +239,9 @@ export async function startEncoding(id: string) {
       outputPath,
       duration: config.duration,
       fps: config.fps,
+      width: config.width,
+      height: config.height,
+      watermark: config.watermark,
       sourceVolume: config.sourceVolume,
       musicVolume: config.musicVolume,
       musicOffset: config.musicOffset,
@@ -258,6 +277,10 @@ export async function getExportStatus(id: string) {
 
 export async function getExportConfig(id: string) {
   return readConfig(id);
+}
+
+export async function getExportOwner(id: string) {
+  return (await readConfig(id))?.ownerId ?? null;
 }
 
 export async function removeExport(id: string) {

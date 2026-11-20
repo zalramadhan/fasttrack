@@ -1,5 +1,57 @@
 export type AspectRatio = "1:1" | "4:5" | "9:16" | "16:9";
 
+export type UserPlan = "free" | "lifetime";
+export type UserRole = "user" | "admin";
+
+export type PublicUser = {
+  id: string;
+  email: string;
+  name: string;
+  whatsapp: string;
+  role: UserRole;
+  plan: UserPlan;
+  status: "active" | "suspended";
+  createdAt: number;
+  activatedAt: number | null;
+  emailVerifiedAt: number | null;
+};
+
+export type OrderStatus = "pending" | "paid" | "cancelled";
+
+export type EditorStep = "trim" | "text" | "export";
+
+export type PreviewQuality = "full" | "half" | "quarter";
+
+export type SavedProject = {
+  version: 1;
+  clips: Clip[];
+  music: MediaAsset | null;
+  videoFrame: VideoFrame;
+  ratio: AspectRatio;
+  layers: TextLayer[];
+  selectedId: string | null;
+  time: number;
+  resolution: 360 | 720 | 1080;
+  quality: "standard" | "high";
+  step: EditorStep;
+  sourceVolume: number;
+  muted: boolean;
+  musicVolume: number;
+  musicOffset: number;
+  previewQuality?: PreviewQuality;
+};
+
+export type UserOrder = {
+  id: string;
+  code: string;
+  amount: number;
+  status: OrderStatus;
+  note: string;
+  createdAt: number;
+  confirmedAt: number | null;
+  whatsappUrl: string | null;
+};
+
 export type VideoBackground = "crop" | "blur" | "solid";
 
 /** How the source video is framed inside the canvas. */
@@ -134,7 +186,7 @@ export const ASPECT_RATIOS: Record<AspectRatio, { width: number; height: number 
   "16:9": { width: 16, height: 9 },
 };
 
-export function outputSize(ratio: AspectRatio, base: 720 | 1080) {
+export function outputSize(ratio: AspectRatio, base: 360 | 720 | 1080) {
   switch (ratio) {
     case "1:1":
       return { width: base, height: base };

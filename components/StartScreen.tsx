@@ -2,25 +2,41 @@
 
 import { useRef, useState } from "react";
 import { importFromLink, uploadMedia } from "@/lib/media";
-import type { MediaAsset } from "@/lib/types";
+import { savePendingSource } from "@/lib/pending-source";
+import type { MediaAsset, PublicUser, SavedProject } from "@/lib/types";
 import {
   GithubIcon,
+  HelpIcon,
   InstagramIcon,
   LinkIcon,
+  SaveIcon,
   SpinnerIcon,
   UploadIcon,
 } from "./icons";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
+import AccountMenu from "./AccountMenu";
 import LogoMark from "./Logo";
 import { useI18n } from "@/lib/i18n";
 
 type Props = {
-  onReady: (asset: MediaAsset) => void;
+  user?: PublicUser | null;
+  onReady?: (asset: MediaAsset) => void;
+  savedProject?: { project: SavedProject; updatedAt: number } | null;
+  onContinue?: () => void;
+  pendingError?: string | null;
+  preparing?: boolean;
 };
 
-export default function StartScreen({ onReady }: Props) {
-  const { t, errorText } = useI18n();
+export default function StartScreen({
+  user,
+  onReady,
+  savedProject,
+  onContinue,
+  pendingError,
+  preparing = false,
+}: Props) {
+  const { t, errorText, lang } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState<null | "link" | "upload">(null);
@@ -32,8 +48,18 @@ export default function StartScreen({ onReady }: Props) {
     setError(null);
     setBusy("upload");
     try {
+      if (!user) {
+        await savePendingSource({
+          kind: "file",
+          blob: file,
+          name: file.name,
+          createdAt: Date.now(),
+        });
+        window.location.assign("/register");
+        return;
+      }
       const asset = await uploadMedia(file, "video");
-      onReady(asset);
+      onReady?.(asset);
     } catch (err) {
       setError(err instanceof Error ? errorText(err.message) : t("common.uploadFailed"));
       setBusy(null);
@@ -49,8 +75,17 @@ export default function StartScreen({ onReady }: Props) {
     setError(null);
     setBusy("link");
     try {
+      if (!user) {
+        await savePendingSource({
+          kind: "link",
+          url: link.trim(),
+          createdAt: Date.now(),
+        });
+        window.location.assign("/register");
+        return;
+      }
       const asset = await importFromLink(link.trim());
-      onReady(asset);
+      onReady?.(asset);
     } catch (err) {
       setError(err instanceof Error ? errorText(err.message) : t("common.linkFailed"));
       setBusy(null);
@@ -68,9 +103,29 @@ export default function StartScreen({ onReady }: Props) {
             </span>
             <span className="hidden text-[11px] text-muted sm:inline">video → mp4</span>
           </div>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="hidden sm:inline-flex">
+              <LanguageToggle />
+            </span>
             <ThemeToggle />
+            {user ? (
+              <AccountMenu user={user} />
+            ) : (
+              <>
+                <a
+                  href="/login"
+                  className="focus-ring rounded-lg px-2 py-1.5 text-[11.5px] font-medium text-muted transition hover:text-ink"
+                >
+                  {t("start.signIn")}
+                </a>
+                <a
+                  href="/register"
+                  className="focus-ring rounded-lg bg-ink px-2.5 py-1.5 text-[11.5px] font-medium text-on-ink transition hover:bg-ink/90"
+                >
+                  {t("start.createAccount")}
+                </a>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -168,6 +223,47 @@ export default function StartScreen({ onReady }: Props) {
             />
 
             {error && <p className="alert mt-3">{error}</p>}
+            {pendingError && <p className="alert mt-3">{pendingError}</p>}
+            {preparing && (
+              <p className="mt-3 flex items-center justify-center gap-2 text-[11.5px] text-muted">
+                <SpinnerIcon className="h-3.5 w-3.5" /> {t("start.preparing")}
+              </p>
+            )}
+
+            {!user && (
+              <p className="mt-3 text-center text-[11px] leading-relaxed text-muted">
+                {t("start.publicNote")}
+              </p>
+            )}
+
+            {savedProject && user && onContinue && (
+              <button
+                type="button"
+                onClick={onContinue}
+                className="focus-ring mt-4 flex w-full items-center gap-3 rounded-[14px] border border-emerald-500/30 bg-emerald-500/[0.06] px-3 py-3 text-left transition hover:border-emerald-500/50 hover:bg-emerald-500/[0.1]"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-emerald-500/30 bg-surface text-emerald-700 dark:text-emerald-300">
+                  <SaveIcon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[12.5px] font-semibold text-ink">
+                    {t("project.continue")}
+                  </span>
+                  <span className="mt-0.5 block text-[10.5px] text-muted">
+                    {t("project.continueMeta", {
+                      count: savedProject.project.clips.length,
+                      date: new Date(savedProject.updatedAt).toLocaleDateString(
+                        lang === "id" ? "id-ID" : "en-US",
+                        { day: "numeric", month: "short", year: "numeric" },
+                      ),
+                    })}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                  →
+                </span>
+              </button>
+            )}
 
             <p className="mt-3 text-center text-[11px] leading-relaxed text-muted">
               {t("start.sources")}
@@ -186,6 +282,12 @@ export default function StartScreen({ onReady }: Props) {
             {t("start.legal")}
           </p>
           <div className="flex items-center gap-4">
+            <a
+              href="/help"
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted transition hover:text-ink"
+            >
+              <HelpIcon className="h-3.5 w-3.5" /> {t("account.help")}
+            </a>
             <a
               href="https://github.com/zalramadhan"
               target="_blank"

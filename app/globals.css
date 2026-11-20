@@ -91,6 +91,10 @@ body {
     @apply text-[10px] font-medium uppercase tracking-[0.14em] text-muted;
   }
 
+  .card-title {
+    @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400;
+  }
+
   .input {
     @apply w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[13px] text-ink outline-none transition placeholder:text-muted/70 focus:border-ink/40 focus:ring-2 focus:ring-ink/5;
   }

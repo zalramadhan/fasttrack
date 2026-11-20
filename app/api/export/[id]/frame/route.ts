@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { appendFrame } from "@/lib/server/export-job";
+import { getCurrentUser } from "@/lib/server/auth";
+import { appendFrame, getExportOwner } from "@/lib/server/export-job";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +8,13 @@ export const maxDuration = 600;
 
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Silakan login dulu." }, { status: 401 });
+  }
+  if ((await getExportOwner(id)) !== user.id) {
+    return NextResponse.json({ error: "Export tidak ditemukan." }, { status: 404 });
+  }
   const index = Number(new URL(req.url).searchParams.get("index") ?? "-1");
 
   if (!Number.isInteger(index) || index < 0) {

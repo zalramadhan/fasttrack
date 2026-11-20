@@ -1,10 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatTime, uid } from "@/lib/format";
 import { importFromLink, uploadMedia } from "@/lib/media";
 import { DEFAULT_TRANSITION, MAX_CLIPS, type Clip, type MediaAsset } from "@/lib/types";
-import { FilmIcon, LinkIcon, PlusIcon, SpinnerIcon, TrashIcon, UploadIcon } from "./icons";
+import {
+  ChevronDownIcon,
+  FilmIcon,
+  LinkIcon,
+  PlusIcon,
+  SpinnerIcon,
+  TrashIcon,
+  UploadIcon,
+} from "./icons";
 import { EmptyHint } from "./ui";
 import { useI18n } from "@/lib/i18n";
 
@@ -22,6 +30,11 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [working, setWorking] = useState<null | "upload" | "link">(null);
   const [dragging, setDragging] = useState(false);
+  const [open, setOpen] = useState(clips.length === 0);
+
+  useEffect(() => {
+    setOpen(clips.length === 0);
+  }, [clips.length]);
 
   const full = clips.length >= MAX_CLIPS;
   const disabled = busy || working !== null || full;
@@ -62,7 +75,7 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
     <section id="source-card" className="card overflow-hidden scroll-mt-20">
       <header className="flex min-h-11 items-center justify-between gap-3 border-b border-line px-3.5 py-1.5">
         <div className="flex min-w-0 items-center gap-2">
-          <h2 className="label whitespace-nowrap">{t("source.title")}</h2>
+          <h2 className="card-title whitespace-nowrap">{t("source.title")}</h2>
           <span className="chip whitespace-nowrap tabular-nums">
             {clips.length}/{MAX_CLIPS} {t("source.count")}
           </span>
@@ -70,9 +83,24 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
         <span className="hidden shrink-0 text-[10.5px] text-muted sm:inline">
           {t("source.maxNote")}
         </span>
+        {clips.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
+            aria-label={t(open ? "source.collapse" : "source.expand")}
+            className="focus-ring -mr-1.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-ink/[0.04] hover:text-ink"
+          >
+            <ChevronDownIcon
+              className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+        )}
       </header>
 
-      <div className="grid gap-3 p-3.5 md:grid-cols-2">
+      <div
+        className={`${open ? "grid" : "hidden"} gap-3 p-3.5 sm:grid md:grid-cols-2`}
+      >
         <div className="space-y-2.5">
           <button
             type="button"

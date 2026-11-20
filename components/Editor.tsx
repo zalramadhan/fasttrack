@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PreviewStage, { type PreviewHandle } from "./PreviewStage";
 import SourceCard from "./SourceCard";
 import AudioPanel from "./AudioPanel";
-import Timeline from "./Timeline";
 import ClipTrimPanel from "./ClipTrimPanel";
 import TransitionPanel from "./TransitionPanel";
 import VideoFramePanel from "./VideoFramePanel";
@@ -25,14 +24,29 @@ import {
   type AspectRatio,
   type Clip,
   type ClipTransition,
+  type EditorStep,
   type MediaAsset,
+  type PreviewQuality,
+  type PublicUser,
+  type SavedProject,
   type TextAnimation,
   type TextLayer,
   type VideoFrame,
 } from "@/lib/types";
-import { DownloadIcon, GithubIcon, InstagramIcon, TypeIcon } from "./icons";
+import {
+  DownloadIcon,
+  GithubIcon,
+  HelpIcon,
+  InstagramIcon,
+  MenuIcon,
+  SaveIcon,
+  TypeIcon,
+  XIcon,
+} from "./icons";
 import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
+import AccountMenu from "./AccountMenu";
+import VerifyEmailBanner from "./VerifyEmailBanner";
 import LogoMark from "./Logo";
 import { useI18n, type MessageKey } from "@/lib/i18n";
 import { isLoopEffect } from "@/lib/text-animations";
@@ -49,13 +63,38 @@ const initialState: ExportUIState = {
   startedAt: null,
 };
 
-type Step = "trim" | "text" | "export";
+type Step = EditorStep;
 
-const STEPS: { id: "source" | Step; label: MessageKey; num: string }[] = [
-  { id: "source", label: "editor.stepSource", num: "01" },
-  { id: "trim", label: "editor.stepTrim", num: "02" },
-  { id: "text", label: "editor.stepText", num: "03" },
-  { id: "export", label: "editor.stepExport", num: "04" },
+const STEPS: {
+  id: "source" | Step;
+  label: MessageKey;
+  shortLabel: MessageKey;
+  num: string;
+}[] = [
+  {
+    id: "source",
+    label: "editor.stepSource",
+    shortLabel: "editor.stepSourceShort",
+    num: "01",
+  },
+  {
+    id: "trim",
+    label: "editor.stepTrim",
+    shortLabel: "editor.stepTrimShort",
+    num: "02",
+  },
+  {
+    id: "text",
+    label: "editor.stepText",
+    shortLabel: "editor.stepTextShort",
+    num: "03",
+  },
+  {
+    id: "export",
+    label: "editor.stepExport",
+    shortLabel: "editor.stepExportShort",
+    num: "04",
+  },
 ];
 
 function makeLayer(start: number, end: number, text: string): TextLayer {
@@ -85,30 +124,61 @@ function makeLayer(start: number, end: number, text: string): TextLayer {
 }
 
 type Props = {
+  user: PublicUser;
   /** First video handed over by the entry screen. */
   bootAsset?: MediaAsset | null;
+  /** Project restored from the user's saved slot. */
+  initialProject?: SavedProject | null;
+  shopeeUrl?: string;
 };
 
-export default function Editor({ bootAsset }: Props) {
+export default function Editor({
+  user,
+  bootAsset,
+  initialProject,
+  shopeeUrl = "",
+}: Props) {
   const { t, errorText } = useI18n();
-  const [clips, setClips] = useState<Clip[]>([]);
-  const [music, setMusic] = useState<MediaAsset | null>(null);
-  const [videoFrame, setVideoFrame] = useState<VideoFrame>(DEFAULT_VIDEO_FRAME);
-  const [ratio, setRatio] = useState<AspectRatio>("9:16");
-  const [layers, setLayers] = useState<TextLayer[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isPaid = user.plan === "lifetime";
+  const saved = initialProject ?? null;
+  const [clips, setClips] = useState<Clip[]>(() => saved?.clips ?? []);
+  const [music, setMusic] = useState<MediaAsset | null>(() => saved?.music ?? null);
+  const [videoFrame, setVideoFrame] = useState<VideoFrame>(
+    () => saved?.videoFrame ?? DEFAULT_VIDEO_FRAME,
+  );
+  const [ratio, setRatio] = useState<AspectRatio>(() => saved?.ratio ?? "9:16");
+  const [layers, setLayers] = useState<TextLayer[]>(() => saved?.layers ?? []);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => saved?.selectedId ?? null,
+  );
   const [playing, setPlaying] = useState(false);
-  const [time, setTime] = useState(0);
-  const [resolution, setResolution] = useState<720 | 1080>(1080);
-  const [quality, setQuality] = useState<"standard" | "high">("standard");
-  const [step, setStep] = useState<Step>("trim");
-  const [sourceVolume, setSourceVolume] = useState(1);
-  const [muted, setMuted] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.7);
-  const [musicOffset, setMusicOffset] = useState(0);
+  const [time, setTime] = useState(() => saved?.time ?? 0);
+  const [resolution, setResolution] = useState<360 | 720 | 1080>(() =>
+    isPaid ? (saved?.resolution ?? 1080) : 720,
+  );
+  const [previewQuality, setPreviewQuality] = useState<PreviewQuality>(
+    () => saved?.previewQuality ?? "full",
+  );
+  const [quality, setQuality] = useState<"standard" | "high">(
+    () => saved?.quality ?? "standard",
+  );
+  const [step, setStep] = useState<Step>(() => saved?.step ?? "trim");
+  const [sourceVolume, setSourceVolume] = useState(() => saved?.sourceVolume ?? 1);
+  const [muted, setMuted] = useState(() => saved?.muted ?? false);
+  const [musicVolume, setMusicVolume] = useState(() => saved?.musicVolume ?? 0.7);
+  const [musicOffset, setMusicOffset] = useState(() => saved?.musicOffset ?? 0);
   const [sourceBusy, setSourceBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportState, setExportState] = useState<ExportUIState>(initialState);
+  const [saving, setSaving] = useState(false);
+  const [savedNotice, setSavedNotice] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [shopeeUnlock, setShopeeUnlock] = useState<"locked" | "checking" | "ready">(
+    isPaid ? "ready" : "locked",
+  );
+  const [shopeeCountdown, setShopeeCountdown] = useState(5);
+  const saveNoticeTimer = useRef<number | null>(null);
+  const shopeeTimer = useRef<number | null>(null);
 
   const previewRef = useRef<PreviewHandle | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -120,6 +190,21 @@ export default function Editor({ bootAsset }: Props) {
   const timeline = useMemo(() => buildTimeline(clips), [clips]);
   const totalDuration = useMemo(() => timelineDuration(timeline), [timeline]);
   const exportSize = outputSize(ratio, resolution);
+  const bitrateMbps = isPaid ? (quality === "high" ? 12 : 7) : 2;
+
+  useEffect(() => {
+    if (!isPaid && resolution !== 720) setResolution(720);
+    else if (isPaid && resolution === 360) setResolution(720);
+  }, [isPaid, resolution]);
+
+  useEffect(
+    () => () => {
+      if (shopeeTimer.current !== null) {
+        window.clearInterval(shopeeTimer.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     void ensureFont("Inter", 400);
@@ -254,6 +339,15 @@ export default function Editor({ bootAsset }: Props) {
 
   useEffect(() => () => clearPreviewStop(), [clearPreviewStop]);
 
+  useEffect(
+    () => () => {
+      if (saveNoticeTimer.current !== null) {
+        window.clearTimeout(saveNoticeTimer.current);
+      }
+    },
+    [],
+  );
+
   const playPreview = useCallback(
     (start: number, seconds: number) => {
       clearPreviewStop();
@@ -352,15 +446,23 @@ export default function Editor({ bootAsset }: Props) {
     setSelectedId((prev) => (prev === id ? null : prev));
   }, []);
 
-  const handleSeek = useCallback(
-    (relative: number) => {
-      clearPreviewStop();
-      setPlaying(false);
-      setTime(relative);
-      previewRef.current?.seek(relative);
-    },
-    [clearPreviewStop],
-  );
+  const unlockShopee = useCallback(() => {
+    if (isPaid || shopeeUnlock !== "locked" || !shopeeUrl) return;
+    setShopeeUnlock("checking");
+    setShopeeCountdown(5);
+    let remaining = 5;
+    shopeeTimer.current = window.setInterval(() => {
+      remaining -= 1;
+      setShopeeCountdown(Math.max(0, remaining));
+      if (remaining <= 0) {
+        if (shopeeTimer.current !== null) {
+          window.clearInterval(shopeeTimer.current);
+          shopeeTimer.current = null;
+        }
+        setShopeeUnlock("ready");
+      }
+    }, 1000);
+  }, [isPaid, shopeeUnlock, shopeeUrl]);
 
   const handlePlayingChange = useCallback(
     (next: boolean) => {
@@ -377,8 +479,22 @@ export default function Editor({ bootAsset }: Props) {
 
   async function handleExport() {
     if (!clips.length) return;
+    if (!user.emailVerifiedAt) {
+      setStep("export");
+      setError(t("verify.exportBlocked"));
+      return;
+    }
+    if (!isPaid && shopeeUnlock !== "ready") {
+      setStep("export");
+      setError(t("export.unlockHint"));
+      return;
+    }
     setPlaying(false);
     setStep("export");
+    if (!isPaid) {
+      setShopeeUnlock("locked");
+      setShopeeCountdown(5);
+    }
     const controller = new AbortController();
     abortRef.current = controller;
     setExportState({
@@ -401,7 +517,7 @@ export default function Editor({ bootAsset }: Props) {
           sourceVolume: muted ? 0 : sourceVolume,
           musicVolume: music ? musicVolume : 0,
           musicOffset,
-          bitrateMbps: quality === "high" ? 12 : 7,
+          bitrateMbps,
           videoFrame,
         },
         (update) => {
@@ -446,6 +562,52 @@ export default function Editor({ bootAsset }: Props) {
     abortRef.current?.abort();
   }
 
+  async function handleSave() {
+    if (!clips.length || saving) return;
+    setSaving(true);
+    setError(null);
+    const project: SavedProject = {
+      version: 1,
+      clips,
+      music,
+      videoFrame,
+      ratio,
+      layers,
+      selectedId,
+      time,
+      resolution,
+      quality,
+      step,
+      sourceVolume,
+      muted,
+      musicVolume,
+      musicOffset,
+      previewQuality,
+    };
+
+    try {
+      const res = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? t("project.saveError"));
+      setSavedNotice(true);
+      if (saveNoticeTimer.current !== null) {
+        window.clearTimeout(saveNoticeTimer.current);
+      }
+      saveNoticeTimer.current = window.setTimeout(() => {
+        saveNoticeTimer.current = null;
+        setSavedNotice(false);
+      }, 2200);
+    } catch (err) {
+      setError(err instanceof Error ? errorText(err.message) : t("project.saveError"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const hasClips = clips.length > 0;
 
   return (
@@ -460,7 +622,7 @@ export default function Editor({ bootAsset }: Props) {
             <span className="chip hidden sm:inline">video → mp4</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-2 md:flex">
             {totalDuration > 0 && (
               <span className="hidden font-mono text-[11px] tabular-nums text-muted sm:inline">
                 {t(clips.length === 1 ? "editor.summaryOne" : "editor.summary", {
@@ -470,20 +632,127 @@ export default function Editor({ bootAsset }: Props) {
                 })}
               </span>
             )}
+            <AccountMenu user={user} />
             <LanguageToggle />
             <ThemeToggle />
             <button
               type="button"
+              onClick={() => void handleSave()}
+              disabled={!hasClips || saving}
+              aria-label={t("project.save")}
+              className="focus-ring inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-2 text-[12px] font-medium text-ink transition hover:border-line-strong hover:bg-ink/[0.03] disabled:opacity-40 sm:min-h-0 sm:py-1.5"
+            >
+              <SaveIcon className="h-3.5 w-3.5" />
+              <span>
+                {saving
+                  ? t("project.saving")
+                  : savedNotice
+                    ? t("project.saved")
+                    : t("project.save")}
+              </span>
+            </button>
+            <button
+              type="button"
               onClick={() => setStep("export")}
               disabled={!hasClips}
-              className="focus-ring inline-flex items-center gap-1.5 rounded-lg border border-ink bg-ink px-3 py-1.5 text-[12px] font-medium text-on-ink transition hover:bg-ink/90 disabled:opacity-40"
+              className="focus-ring inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-ink bg-ink px-3 py-2 text-[12px] font-medium text-on-ink transition hover:bg-ink/90 disabled:opacity-40 sm:min-h-0 sm:py-1.5"
             >
               <DownloadIcon className="h-3.5 w-3.5" />
               Export
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setMobileMenu((value) => !value)}
+            aria-label={t(mobileMenu ? "editor.mobileClose" : "editor.mobileMenu")}
+            aria-expanded={mobileMenu}
+            className="focus-ring grid h-10 w-10 place-items-center rounded-lg border border-line bg-surface text-ink md:hidden"
+          >
+            {mobileMenu ? (
+              <XIcon className="h-4 w-4" />
+            ) : (
+              <MenuIcon className="h-4 w-4" />
+            )}
+          </button>
         </div>
+
+        {mobileMenu && (
+          <div className="absolute left-0 right-0 top-[56px] z-50 border-b border-line bg-surface p-3 shadow-xl md:hidden">
+            <div className="mx-auto max-w-[1580px]">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper/60 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[11.5px] font-medium text-ink">
+                    {user.email}
+                  </p>
+                  <p className="text-[10px] text-muted">
+                    {t(isPaid ? "account.lifetime" : "account.free")}
+                    {!user.emailVerifiedAt && ` · ${t("account.emailUnverified")}`}
+                  </p>
+                </div>
+                <AccountMenu user={user} />
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenu(false);
+                    void handleSave();
+                  }}
+                  disabled={!hasClips || saving}
+                  className="btn"
+                >
+                  <SaveIcon className="h-3.5 w-3.5" />
+                  {saving
+                    ? t("project.saving")
+                    : savedNotice
+                      ? t("project.saved")
+                      : t("project.save")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenu(false);
+                    setStep("export");
+                  }}
+                  disabled={!hasClips}
+                  className="btn btn-primary"
+                >
+                  <DownloadIcon className="h-3.5 w-3.5" /> Export
+                </button>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between rounded-lg border border-line px-2.5 py-1.5">
+                <span className="text-[10.5px] text-muted">{t("common.language")}</span>
+                <div className="flex items-center gap-2">
+                  <LanguageToggle />
+                  <ThemeToggle />
+                </div>
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <a href="/orders" className="btn">
+                  {t("account.orders")}
+                </a>
+                <a href="/help" className="btn">
+                  {t("account.help")}
+                </a>
+                <a href="/" className="btn">
+                  {t("editor.home")}
+                </a>
+                {user.role === "admin" && (
+                  <a href="/admin" className="btn">
+                    {t("account.admin")}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </header>
+
+      <VerifyEmailBanner user={user} />
 
       <main className="mx-auto max-w-[1580px] px-3 pb-10 pt-3">
         <SourceCard
@@ -519,7 +788,7 @@ export default function Editor({ bootAsset }: Props) {
                   }
                   setStep(item.id);
                 }}
-                className={`focus-ring flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11.5px] font-medium transition disabled:opacity-40 ${
+                className={`focus-ring flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11.5px] font-medium transition disabled:opacity-40 sm:min-h-0 sm:py-1.5 ${
                   active
                     ? "bg-ink text-on-ink"
                     : "text-muted hover:bg-ink/[0.03] hover:text-ink"
@@ -532,22 +801,17 @@ export default function Editor({ bootAsset }: Props) {
                 >
                   {item.num}
                 </span>
-                <span className="truncate">{t(item.label)}</span>
+                <span className="truncate sm:hidden">{t(item.shortLabel)}</span>
+                <span className="hidden truncate sm:inline">{t(item.label)}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="mt-3 grid items-start gap-3 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div className="mt-3 flex flex-col gap-3 xl:grid xl:grid-cols-[380px_minmax(0,1fr)] xl:items-start">
           <div className="order-2 flex min-w-0 flex-col gap-3 xl:order-1">
             {step === "trim" && (
               <>
-                <Timeline
-                  clips={clips}
-                  totalDuration={totalDuration}
-                  time={time}
-                  onSeek={handleSeek}
-                />
                 <ClipTrimPanel
                   clips={clips}
                   totalDuration={totalDuration}
@@ -591,7 +855,7 @@ export default function Editor({ bootAsset }: Props) {
                     type="button"
                     onClick={() => setStep("text")}
                     disabled={!hasClips}
-                    className="btn"
+                    className="btn w-full sm:w-auto"
                   >
                     <TypeIcon className="h-3.5 w-3.5" /> {t("editor.nextText")}
                   </button>
@@ -614,7 +878,11 @@ export default function Editor({ bootAsset }: Props) {
                   onPreviewAnimation={previewLayerAnimation}
                 />
                 <div className="flex justify-end">
-                  <button type="button" onClick={() => setStep("export")} className="btn">
+                  <button
+                    type="button"
+                    onClick={() => setStep("export")}
+                    className="btn w-full sm:w-auto"
+                  >
                     <DownloadIcon className="h-3.5 w-3.5" /> {t("editor.nextExport")}
                   </button>
                 </div>
@@ -630,6 +898,7 @@ export default function Editor({ bootAsset }: Props) {
                 layerCount={layers.length}
                 clipCount={clips.length}
                 resolution={resolution}
+                isPaid={isPaid}
                 onResolution={setResolution}
                 quality={quality}
                 onQuality={setQuality}
@@ -637,14 +906,21 @@ export default function Editor({ bootAsset }: Props) {
                 onExport={() => void handleExport()}
                 onCancel={handleCancel}
                 onAddVideo={focusSource}
+                emailVerified={Boolean(user.emailVerifiedAt)}
+                shopeeUrl={shopeeUrl}
+                shopeeUnlocked={isPaid || shopeeUnlock === "ready"}
+                shopeeChecking={shopeeUnlock === "checking"}
+                shopeeCountdown={shopeeCountdown}
+                onShopeeClick={unlockShopee}
               />
             )}
 
             <div className="px-1 text-[10.5px] leading-relaxed text-muted">
               <p>{t("editor.privacy")}</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-3">
-                <a
-                  href="https://github.com/zalramadhan"
+              <div className="mt-1.5 flex flex-wrap items-center gap-3">                <a href="/help" className="inline-flex items-center gap-1 transition hover:text-ink">
+                  <HelpIcon className="h-3 w-3" /> {t("account.help")}
+                </a>
+                <a href="https://github.com/zalramadhan"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 transition hover:text-ink"
@@ -666,14 +942,17 @@ export default function Editor({ bootAsset }: Props) {
             </div>
           </div>
 
-          <div className="sticky top-[56px] z-30 order-1 h-[42vh] min-h-[260px] max-h-[440px] bg-paper xl:order-2 xl:h-[calc(100vh-68px)] xl:max-h-none">
+          <div className="sticky top-[56px] z-30 order-1 h-[clamp(336px,55dvh,560px)] shrink-0 bg-paper sm:h-[clamp(360px,50vh,580px)] xl:order-2 xl:h-[calc(100vh-68px)]">
             <PreviewStage
               previewRef={previewRef}
               clips={clips}
               music={music}
               ratio={ratio}
               onRatio={setRatio}
-              baseRes={resolution}
+              baseRes={resolution === 360 ? 720 : resolution}
+              previewQuality={previewQuality}
+              onPreviewQuality={setPreviewQuality}
+              watermarked={!isPaid}
               layers={layers}
               videoFrame={videoFrame}
               selectedId={selectedId}

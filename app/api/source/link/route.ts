@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/server/auth";
 import { downloadVideo } from "@/lib/server/ytdlp";
 import { downloadThreadsVideo, isThreadsUrl } from "@/lib/server/threads";
 import {
@@ -17,6 +18,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Silakan login dulu." }, { status: 401 });
+  }
   let url = "";
   try {
     const body = (await req.json()) as { url?: string };
@@ -73,6 +78,7 @@ export async function POST(req: Request) {
       ext,
       size: stat.size,
       createdAt: Date.now(),
+      ownerId: user.id,
     };
     await writeJson(path.join(dir, "meta.json"), meta);
     void cleanupOld(UPLOADS_DIR);

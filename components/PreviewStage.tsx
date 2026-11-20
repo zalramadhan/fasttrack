@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { drawFrame, drawLayers, hitTestLayers } from "@/lib/render";
 import { TransitionCompositor } from "@/lib/transition-compositor";
 import { clamp, formatTime } from "@/lib/format";
@@ -12,10 +12,11 @@ import {
   type AspectRatio,
   type Clip,
   type MediaAsset,
+  type PreviewQuality,
   type TextLayer,
   type VideoFrame,
 } from "@/lib/types";
-import { PauseIcon, PlayIcon } from "./icons";
+import { PauseIcon, PlayIcon, SpinnerIcon } from "./icons";
 import { useI18n } from "@/lib/i18n";
 
 export type PreviewHandle = { seek: (relativeTime: number) => void };
@@ -27,6 +28,9 @@ type Props = {
   ratio: AspectRatio;
   onRatio: (ratio: AspectRatio) => void;
   baseRes: 720 | 1080;
+  previewQuality: PreviewQuality;
+  onPreviewQuality: (quality: PreviewQuality) => void;
+  watermarked?: boolean;
   layers: TextLayer[];
   videoFrame: VideoFrame;
   selectedId: string | null;
@@ -49,6 +53,11 @@ const RATIO_OPTIONS: { value: AspectRatio; label: string }[] = [
   { value: "16:9", label: "16:9" },
 ];
 
+type ProxyState = {
+  status: "working" | "ready" | "error";
+  url?: string;
+};
+
 export default function PreviewStage(props: Props) {
   const {
     previewRef,
@@ -57,6 +66,9 @@ export default function PreviewStage(props: Props) {
     ratio,
     onRatio,
     baseRes,
+    previewQuality,
+    onPreviewQuality,
+    watermarked = false,
     layers,
     videoFrame,
     onSelect,
@@ -81,6 +93,9 @@ export default function PreviewStage(props: Props) {
   const compositorRef = useRef<TransitionCompositor | null>(null);
   const scrubberRef = useRef<HTMLDivElement>(null);
   const scrubbingRef = useRef(false);
+  const timeRef = useRef(time);
+  timeRef.current = time;
+  const [proxyStates, setProxyStates] = useState<Record<string, ProxyState>>({});
 
   const timeline = useMemo(() => buildTimeline(clips), [clips]);
   const timelineRef = useRef(timeline);
@@ -132,6 +147,65 @@ export default function PreviewStage(props: Props) {
     musicVolume,
     music,
   ]);
+
+  const assetIds = useMemo(
+    () => Array.from(new Set(clips.map((clip) => clip.asset.id))),
+    [clips],
+  );
+  const assetKey = assetIds.join("|");
+  const proxyKey = (id: string) => `${previewQuality}:${id}`;
+
+  useEffect(() => {
+    if (previewQuality === "full" || assetIds.length === 0) {
+      setProxyStates({});
+      return;
+    }
+
+    let cancelled = false;
+    let timer: number | null = null;
+
+    const load = async () => {
+      const next: Record<string, ProxyState> = {};
+      let working = false;
+
+      await Promise.all(
+        assetIds.map(async (id) => {
+          try {
+            const res = await fetch(
+              `/api/media/${id}/preview?quality=${previewQuality}`,
+              { cache: "no-store" },
+            );
+            const data = (await res.json().catch(() => ({}))) as {
+              status?: string;
+              url?: string;
+            };
+            if (cancelled) return;
+            const key = `${previewQuality}:${id}`;
+            if (res.status === 202) {
+              next[key] = { status: "working" };
+              working = true;
+            } else if (res.ok && data.status === "ready" && data.url) {
+              next[key] = { status: "ready", url: data.url };
+            } else {
+              next[key] = { status: "error" };
+            }
+          } catch {
+            if (!cancelled) next[`${previewQuality}:${id}`] = { status: "error" };
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      setProxyStates(next);
+      if (working) timer = window.setTimeout(load, 1200);
+    };
+
+    void load();
+    return () => {
+      cancelled = true;
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [previewQuality, assetKey]);
 
   const previewSize = useMemo(() => {
     const base = 720;
@@ -387,6 +461,18 @@ export default function PreviewStage(props: Props) {
     previewRef.current = { seek: seekTo };
   }, [previewRef, seekTo]);
 
+  const proxyReadyKey = assetIds
+    .map((id) => proxyStates[proxyKey(id)]?.status ?? "idle")
+    .join("|");
+
+  // Reloading a video with a proxy src resets its currentTime. Once the new
+  // source is ready, put the playhead back where the user left it.
+  useEffect(() => {
+    if (!clips.length) return;
+    const timer = window.setTimeout(() => seekTo(timeRef.current), 180);
+    return () => window.clearTimeout(timer);
+  }, [previewQuality, proxyReadyKey, clips.length, seekTo]);
+
   function canvasPoint(event: React.PointerEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -435,6 +521,26 @@ export default function PreviewStage(props: Props) {
 
   const scrubTotal = Math.max(0.1, totalDuration);
   const playFrac = clamp(time / scrubTotal, 0, 1);
+  const activeClipIndex = timeline.length ? timelineIndexAt(timeline, time) : 0;
+  const proxyPreparing =
+    previewQuality !== "full" &&
+    assetIds.some(
+      (id) => !proxyStates[proxyKey(id)] || proxyStates[proxyKey(id)].status === "working",
+    );
+  const proxyFailed =
+    previewQuality !== "full" &&
+    assetIds.some((id) => proxyStates[proxyKey(id)]?.status === "error");
+
+  function videoSrc(clip: Clip) {
+    if (previewQuality === "full") return clip.asset.url;
+    const proxy = proxyStates[proxyKey(clip.asset.id)];
+    return proxy?.status === "ready" && proxy.url ? proxy.url : clip.asset.url;
+  }
+
+  function changeQuality(next: PreviewQuality) {
+    onPlaying(false);
+    onPreviewQuality(next);
+  }
 
   function scrubTo(clientX: number) {
     const track = scrubberRef.current;
@@ -448,7 +554,7 @@ export default function PreviewStage(props: Props) {
     <section className="card flex h-full min-h-0 flex-col overflow-hidden">
       <header className="flex h-11 shrink-0 items-center justify-between gap-3 border-b border-line px-3.5">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="label shrink-0">{t("preview.ratio")}</span>
+          <span className="card-title shrink-0">{t("preview.ratio")}</span>
           <div className="flex items-center gap-0.5 rounded-lg bg-paper p-0.5">
             {RATIO_OPTIONS.map((option) => (
               <button
@@ -465,8 +571,21 @@ export default function PreviewStage(props: Props) {
               </button>
             ))}
           </div>
+          <label className="flex shrink-0 items-center gap-1">
+            <span className="sr-only">{t("preview.quality")}</span>
+            <select
+              value={previewQuality}
+              onChange={(event) => changeQuality(event.target.value as PreviewQuality)}
+              title={t("preview.quality")}
+              className="focus-ring h-7 rounded-md border border-line bg-surface px-1.5 text-[10.5px] font-medium text-ink"
+            >
+              <option value="full">{t("preview.full")}</option>
+              <option value="half">{t("preview.half")}</option>
+              <option value="quarter">{t("preview.quarter")}</option>
+            </select>
+          </label>
         </div>
-        <span className="chip shrink-0 tabular-nums">
+        <span className="chip hidden shrink-0 tabular-nums sm:inline-flex">
           {exportSize.width}×{exportSize.height} · {formatTime(totalDuration, true)}
         </span>
       </header>
@@ -493,17 +612,37 @@ export default function PreviewStage(props: Props) {
             <p className="text-[10.5px] text-white/35">{t("preview.emptyHint")}</p>
           </div>
         )}
-        {clips.map((clip) => (
+        {watermarked && clips.length > 0 && (
+          <div className="pointer-events-none absolute bottom-4 right-4 rounded-md bg-black/35 px-2 py-1 text-[11px] font-semibold tracking-[-0.01em] text-white/75 backdrop-blur-sm">
+            fasttrack
+          </div>
+        )}
+        {proxyPreparing && (
+          <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[10.5px] text-white/85 backdrop-blur-sm">
+            <SpinnerIcon className="h-3 w-3" /> {t("preview.preparing")}
+          </div>
+        )}
+        {proxyFailed && !proxyPreparing && (
+          <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-black/55 px-2 py-1 text-[10px] text-amber-200/90 backdrop-blur-sm">
+            {t("preview.proxyFallback")}
+          </div>
+        )}
+        {clips.map((clip, index) => (
           <video
             key={clip.key}
             ref={(element) => {
               if (element) videoRefs.current.set(clip.key, element);
               else videoRefs.current.delete(clip.key);
             }}
-            src={clip.asset.url}
+            src={videoSrc(clip)}
             className="pointer-events-none absolute h-px w-px opacity-0"
             playsInline
-            preload="auto"
+            preload={index === activeClipIndex || index === activeClipIndex + 1 ? "auto" : "metadata"}
+            onLoadedMetadata={() => {
+              if (clip.key === timelineRef.current[activeIndexRef.current]?.clip.key) {
+                seekTo(timeRef.current);
+              }
+            }}
           />
         ))}
         {music && <audio ref={musicRef} src={music.url} loop preload="auto" />}
@@ -514,7 +653,7 @@ export default function PreviewStage(props: Props) {
           type="button"
           onClick={() => onPlaying(!playing)}
           disabled={!clips.length}
-          className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink text-on-ink transition hover:bg-ink/90 disabled:opacity-30"
+          className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-on-ink transition hover:bg-ink/90 disabled:opacity-30 sm:h-9 sm:w-9"
           aria-label={playing ? t("preview.pause") : t("preview.play")}
         >
           {playing ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
