@@ -18,9 +18,11 @@ import { AuthModal, type AuthMode } from "./AuthModal";
 export default function LandingPage({
   lifetimePrice,
   fontClass,
+  isAuthenticated = false,
 }: {
   lifetimePrice: number;
   fontClass?: string;
+  isAuthenticated?: boolean;
 }) {
   const [locale, setLocale] = useState<Locale>("en");
   const [loadedMedia, setLoadedMedia] = useState<LoadedMedia | null>(null);
@@ -62,12 +64,11 @@ export default function LandingPage({
 
   async function start() {
     await rememberMedia();
+    if (isAuthenticated) {
+      window.location.assign("/editor");
+      return;
+    }
     setAuthMode("signup");
-  }
-
-  async function login() {
-    await rememberMedia();
-    setAuthMode("login");
   }
 
   return (
@@ -79,7 +80,7 @@ export default function LandingPage({
       >
         <Navbar
           locale={locale}
-          onLoginClick={() => void login()}
+          isAuthenticated={isAuthenticated}
           onStartClick={() => void start()}
         />
 
@@ -90,6 +91,7 @@ export default function LandingPage({
             loadedMedia={loadedMedia}
             onMediaSelect={setLoadedMedia}
             onStart={() => void start()}
+            isAuthenticated={isAuthenticated}
           />
 
           <FeaturesSection locale={locale} />
@@ -98,13 +100,18 @@ export default function LandingPage({
           <PricingSection
             locale={locale}
             lifetimePrice={lifetimePrice}
+            isAuthenticated={isAuthenticated}
             onSelectFree={() => void start()}
             onSelectUpgrade={() => window.location.assign("/help")}
           />
 
           <FaqSection locale={locale} />
 
-          <FinalCtaSection locale={locale} onStartClick={() => void start()} />
+          <FinalCtaSection
+            locale={locale}
+            isAuthenticated={isAuthenticated}
+            onStartClick={() => void start()}
+          />
         </main>
 
         <Footer

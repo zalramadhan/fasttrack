@@ -6,13 +6,18 @@ import { COPY, Locale } from './content';
 
 interface NavbarProps {
   locale: Locale;
-  onLoginClick: () => void;
+  isAuthenticated: boolean;
   onStartClick: () => void;
 }
 
-export function Navbar({ locale, onLoginClick, onStartClick }: NavbarProps) {
+export function Navbar({ locale, isAuthenticated, onStartClick }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const t = COPY[locale].nav;
+  const cta = isAuthenticated
+    ? locale === 'en'
+      ? 'Open workspace'
+      : 'Buka editor'
+    : t.cta;
 
   const navLinks = [
     { href: '#features', label: t.features },
@@ -47,22 +52,15 @@ export function Navbar({ locale, onLoginClick, onStartClick }: NavbarProps) {
 
         {/* Zone 3: 1 primary CTA button */}
         <div className="flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onLoginClick}
-            className="hidden text-[13px] font-medium text-[#D2D6CD] transition-colors hover:text-white sm:inline-flex cursor-pointer"
-          >
-            {locale === 'en' ? 'Log in' : 'Masuk'}
-          </button>
           <a
-            href="/register"
+            href={isAuthenticated ? '/editor' : '/register'}
             onClick={(event) => {
               event.preventDefault();
               onStartClick();
             }}
             className="hidden sm:inline-flex min-h-[42px] items-center justify-center gap-1.5 rounded-[10px] bg-[#C3F36B] px-[18px] text-[13px] font-bold text-[#151810] whitespace-nowrap shrink-0 transition-colors duration-150 hover:bg-[#A9DF4E] cursor-pointer"
           >
-            <span>{t.cta}</span>
+            <span>{cta}</span>
             <ArrowUpRight className="h-4 w-4" />
           </a>
 
@@ -95,21 +93,11 @@ export function Navbar({ locale, onLoginClick, onStartClick }: NavbarProps) {
               type="button"
               onClick={() => {
                 setMobileOpen(false);
-                onLoginClick();
-              }}
-              className="py-2.5 text-left whitespace-nowrap hover:text-white cursor-pointer"
-            >
-              {locale === 'en' ? 'Log in' : 'Masuk'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileOpen(false);
                 onStartClick();
               }}
               className="mt-2 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-[10px] bg-[#C3F36B] px-4 text-sm font-bold text-[#151810] whitespace-nowrap cursor-pointer"
             >
-              <span>{t.cta}</span>
+              <span>{cta}</span>
               <ArrowUpRight className="h-4 w-4" />
             </button>
           </nav>

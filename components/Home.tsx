@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Editor from "./Editor";
 import StartScreen from "./StartScreen";
-import LandingPage from "./landing/LandingPage";
 import { importFromLink, uploadMedia } from "@/lib/media";
 import {
   clearPendingSource,
@@ -21,14 +20,10 @@ export default function Home({
   user,
   savedProject,
   shopeeUrl,
-  lifetimePrice,
-  landingFontClass,
 }: {
-  user: PublicUser | null;
+  user: PublicUser;
   savedProject: SavedProjectState | null;
   shopeeUrl: string;
-  lifetimePrice: number;
-  landingFontClass?: string;
 }) {
   const { t, errorText } = useI18n();
   const [asset, setAsset] = useState<MediaAsset | null>(null);
@@ -70,15 +65,6 @@ export default function Home({
     })();
   }, [asset, errorText, openSaved, t, user]);
 
-  if (!user) {
-    return (
-      <LandingPage
-        lifetimePrice={lifetimePrice}
-        fontClass={landingFontClass}
-      />
-    );
-  }
-
   if (openSaved && savedProject) {
     return (
       <Editor
@@ -97,7 +83,6 @@ export default function Home({
         onContinue={() => setOpenSaved(true)}
         pendingError={pendingError}
         preparing={preparing}
-        lifetimePrice={lifetimePrice}
       />
     );
   }

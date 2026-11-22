@@ -44,6 +44,7 @@ interface HeroSectionProps {
   loadedMedia: LoadedMedia | null;
   onMediaSelect: (media: LoadedMedia | null) => void;
   onStart: () => void;
+  isAuthenticated: boolean;
 }
 
 const SUPPORTED_PLATFORMS = [
@@ -63,8 +64,14 @@ export function HeroSection({
   loadedMedia,
   onMediaSelect,
   onStart,
+  isAuthenticated,
 }: HeroSectionProps) {
   const t = COPY[locale].hero;
+  const primaryCta = isAuthenticated
+    ? locale === 'en'
+      ? 'Open workspace'
+      : 'Buka editor'
+    : t.primaryCta;
   const trustItems = COPY[locale].trustStrip;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const heroRef = useRef<HTMLElement>(null);
@@ -378,14 +385,14 @@ export function HeroSection({
             {/* Primary & Secondary CTAs below input field area */}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a
-                href="/register"
+                href={isAuthenticated ? "/editor" : "/register"}
                 onClick={(event) => {
                   event.preventDefault();
                   onStart();
                 }}
                 className="inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[10px] bg-[#C3F36B] px-6 text-sm font-bold text-[#151810] whitespace-nowrap transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#A9DF4E] cursor-pointer"
               >
-                <span>{t.primaryCta}</span>
+                <span>{primaryCta}</span>
                 <ArrowUpRight className="h-4 w-4" />
               </a>
               <a

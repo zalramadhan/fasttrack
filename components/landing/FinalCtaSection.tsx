@@ -6,13 +6,19 @@ import { COPY, Locale } from './content';
 
 interface FinalCtaSectionProps {
   locale: Locale;
+  isAuthenticated: boolean;
   onStartClick: () => void;
 }
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
-export function FinalCtaSection({ locale, onStartClick }: FinalCtaSectionProps) {
+export function FinalCtaSection({ locale, isAuthenticated, onStartClick }: FinalCtaSectionProps) {
   const t = COPY[locale].finalCta;
+  const cta = isAuthenticated
+    ? locale === "en"
+      ? "Open workspace"
+      : "Buka editor"
+    : t.cta;
 
   return (
     <section className="mx-auto max-w-[1160px] px-6 pb-8">
@@ -36,14 +42,14 @@ export function FinalCtaSection({ locale, onStartClick }: FinalCtaSectionProps) 
           {t.subhead}
         </p>
         <a
-          href="/register"
+          href={isAuthenticated ? "/editor" : "/register"}
           onClick={(event) => {
             event.preventDefault();
             onStartClick();
           }}
           className="mt-7 inline-flex min-h-[50px] items-center justify-center gap-2 rounded-[10px] bg-[#C3F36B] px-6 text-sm font-bold text-[#151810] whitespace-nowrap transition-all duration-150 hover:-translate-y-0.5 hover:bg-[#A9DF4E] cursor-pointer"
         >
-          <span>{t.cta}</span>
+          <span>{cta}</span>
           <ArrowUpRight className="h-4 w-4" />
         </a>
       </motion.div>

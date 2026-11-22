@@ -7,6 +7,7 @@ import { COPY, Locale } from './content';
 interface PricingSectionProps {
   locale: Locale;
   lifetimePrice: number;
+  isAuthenticated: boolean;
   onSelectFree: () => void;
   onSelectUpgrade: () => void;
 }
@@ -16,10 +17,16 @@ const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 export function PricingSection({
   locale,
   lifetimePrice,
+  isAuthenticated,
   onSelectFree,
   onSelectUpgrade,
 }: PricingSectionProps) {
   const t = COPY[locale].pricing;
+  const freeCta = isAuthenticated
+    ? locale === "en"
+      ? "Open workspace"
+      : "Buka editor"
+    : t.free.cta;
   const lifetimePriceLabel =
     lifetimePrice > 0
       ? new Intl.NumberFormat(locale === "id" ? "id-ID" : "en-US", {
@@ -82,14 +89,14 @@ export function PricingSection({
               </p>
 
               <a
-                href="/register"
+                href={isAuthenticated ? "/editor" : "/register"}
                 onClick={(event) => {
                   event.preventDefault();
                   onSelectFree();
                 }}
                 className="my-6 inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-[10px] border border-[#30332F] bg-white/4 px-5 text-sm font-bold text-[#F4F5F1] whitespace-nowrap transition-colors hover:border-[#555B50] hover:bg-white/8 cursor-pointer"
               >
-                <span>{t.free.cta}</span>
+                <span>{freeCta}</span>
                 <ArrowUpRight className="h-4 w-4" />
               </a>
 

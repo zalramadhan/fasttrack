@@ -17,7 +17,6 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import AccountMenu from "./AccountMenu";
 import LogoMark from "./Logo";
-import LandingSections from "./LandingSections";
 import { useI18n } from "@/lib/i18n";
 
 type Props = {
@@ -27,7 +26,6 @@ type Props = {
   onContinue?: () => void;
   pendingError?: string | null;
   preparing?: boolean;
-  lifetimePrice: number;
 };
 
 export default function StartScreen({
@@ -37,7 +35,6 @@ export default function StartScreen({
   onContinue,
   pendingError,
   preparing = false,
-  lifetimePrice,
 }: Props) {
   const { t, errorText, lang } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -283,7 +280,6 @@ export default function StartScreen({
           </div>
         </section>
 
-        <LandingSections lifetimePrice={lifetimePrice} />
       </main>
 
       <footer className="border-t border-line">
