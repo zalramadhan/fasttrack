@@ -191,7 +191,7 @@ export default function TextPanel({
         <button
           type="button"
           onClick={onAdd}
-          className="focus-ring inline-flex items-center gap-1 rounded-md border border-line px-1.5 py-0.5 text-[10.5px] font-medium text-ink transition hover:bg-ink/[0.03]"
+          className="focus-ring inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-2 py-1 text-[10.5px] font-semibold text-accent transition hover:bg-accent/20 cursor-pointer"
         >
           <PlusIcon className="h-3 w-3" /> {t("text.addLayer")}
         </button>
@@ -204,27 +204,26 @@ export default function TextPanel({
           return (
             <div
               key={item.id}
-              className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 transition ${
+              className={`group flex items-center gap-2 rounded-[10px] border px-2.5 py-2 transition ${
                 item.id === selectedId
-                  ? "border-ink/25 bg-ink/[0.03]"
-                  : "border-line bg-surface hover:border-line-strong"
+                  ? "border-accent/60 bg-accent/[0.08]"
+                  : "border-line bg-paper/45 hover:border-line-strong"
               }`}
             >
               <button
                 type="button"
                 onClick={() => onSelect(item.id)}
-                className="focus-ring flex min-w-0 flex-1 items-center gap-2 text-left"
+                className="focus-ring flex min-w-0 flex-1 items-center gap-2 text-left cursor-pointer"
               >
-                <span
-                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                    active ? "bg-emerald-500" : "bg-line-strong"
-                  }`}
-                />
                 <span className="min-w-0">
                   <span className="block truncate text-[12px] font-medium text-ink">
                     {item.text.trim() || t("text.untitled")}
                   </span>
-                  <span className="block text-[10px] tabular-nums text-muted">
+                  <span
+                    className={`block font-mono text-[10px] tabular-nums ${
+                      active ? "text-accent" : "text-muted"
+                    }`}
+                  >
                     {formatTime(item.start, true)} – {formatTime(item.end, true)}
                   </span>
                 </span>
@@ -232,7 +231,7 @@ export default function TextPanel({
               <button
                 type="button"
                 onClick={() => onDuplicate(item.id)}
-                className="focus-ring rounded-md px-1 py-0.5 text-[10px] font-medium text-muted opacity-0 transition group-hover:opacity-100 hover:text-ink"
+                className="focus-ring rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted opacity-0 transition group-hover:opacity-100 hover:text-ink cursor-pointer"
                 aria-label={t("text.duplicateAria")}
               >
                 {t("text.duplicate")}
@@ -240,7 +239,7 @@ export default function TextPanel({
               <button
                 type="button"
                 onClick={() => onDelete(item.id)}
-                className="focus-ring rounded-md p-1 text-muted transition hover:text-ink"
+                className="focus-ring rounded-md p-1 text-muted transition hover:text-ink cursor-pointer"
                 aria-label={t("text.deleteAria")}
               >
                 <TrashIcon className="h-3.5 w-3.5" />
@@ -264,14 +263,14 @@ export default function TextPanel({
               />
             </Field>
 
-            <div className="flex items-center gap-1.5 rounded-lg border border-line bg-paper/50 p-1.5">
+            <div className="flex items-center gap-1.5 rounded-[10px] border border-line bg-paper/60 p-1.5">
               <span className="min-w-0 flex-1 px-1 text-[10.5px] leading-snug text-muted">
                 {copiedStyle ? t("text.styleCopied") : t("text.styleHint")}
               </span>
               <button
                 type="button"
                 onClick={copyStyle}
-                className="focus-ring shrink-0 rounded-md border border-line bg-surface px-2 py-1 text-[10.5px] font-medium text-ink transition hover:bg-ink/[0.03]"
+                className="focus-ring shrink-0 rounded-md border border-line bg-surface px-2 py-1 text-[10.5px] font-medium text-ink transition hover:border-line-strong cursor-pointer"
               >
                 {t("text.copy")}
               </button>
@@ -279,7 +278,7 @@ export default function TextPanel({
                 type="button"
                 onClick={pasteStyle}
                 disabled={!copiedStyle}
-                className="focus-ring shrink-0 rounded-md border border-line bg-surface px-2 py-1 text-[10.5px] font-medium text-ink transition hover:bg-ink/[0.03] disabled:pointer-events-none disabled:opacity-40"
+                className="focus-ring shrink-0 rounded-md border border-line bg-surface px-2 py-1 text-[10.5px] font-medium text-ink transition hover:border-line-strong disabled:pointer-events-none disabled:opacity-40 cursor-pointer"
               >
                 {t("text.paste")}
               </button>
@@ -294,7 +293,7 @@ export default function TextPanel({
                     type="button"
                     title={t("text.applyPreset", { name: preset.name })}
                     onClick={() => onChange(layer.id, preset.patch)}
-                    className="focus-ring w-[62px] shrink-0 rounded-lg border border-line px-1 py-1.5 text-center transition hover:border-line-strong hover:bg-paper/60"
+                    className="focus-ring w-[62px] shrink-0 rounded-[10px] border border-line bg-paper/50 px-1 py-1.5 text-center transition hover:border-accent/55 hover:bg-paper cursor-pointer"
                   >
                     <span
                       className="block text-[17px] leading-6 text-ink"

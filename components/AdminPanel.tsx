@@ -7,7 +7,7 @@ import { useI18n, type MessageKey } from "@/lib/i18n";
 import AccountMenu from "./AccountMenu";
 import LanguageToggle from "./LanguageToggle";
 import ThemeToggle from "./ThemeToggle";
-import LogoMark from "./Logo";
+import { Wordmark } from "./Logo";
 
 export type AdminUser = {
   id: string;
@@ -239,10 +239,10 @@ export default function AdminPanel({
       <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between px-4">
           <a href="/" className="flex items-center gap-2.5">
-            <LogoMark className="h-7 w-7 text-ink" />
-            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
-              fasttrack
-            </span>
+            <Wordmark
+              markClassName="h-7 w-7 text-accent"
+              textClassName="text-[20px] text-ink"
+            />
             <span className="chip">{t("admin.role")}</span>
           </a>
           <div className="flex items-center gap-2">

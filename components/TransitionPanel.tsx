@@ -21,7 +21,7 @@ export default function TransitionPanel({ clips, timeline, onChange, onPreview }
     <Panel
       title={t("transition.title")}
       action={
-        <span className="chip">
+        <span className="font-mono text-[11px] font-medium tabular-nums text-muted">
           {t(clips.length === 2 ? "transition.seamsOne" : "transition.seams", {
             count: clips.length - 1,
           })}
@@ -36,7 +36,7 @@ export default function TransitionPanel({ clips, timeline, onChange, onPreview }
           const clamped = active && item.transitionIn < clip.transition.duration - 0.01;
 
           return (
-            <div key={clip.key} className="rounded-lg border border-line px-2.5 py-2">
+            <div key={clip.key} className="rounded-[10px] border border-line bg-paper/45 px-2.5 py-2">
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-1.5 text-[11.5px] font-medium text-ink">
                   <span className="font-mono text-[10px] tabular-nums text-muted">{index}</span>
@@ -48,7 +48,7 @@ export default function TransitionPanel({ clips, timeline, onChange, onPreview }
                     {active ? labelFor(clip.transition.type) : t("transition.cut")}
                   </span>
                 </span>
-                <span className="shrink-0 font-mono text-[10px] tabular-nums text-muted">
+                <span className="shrink-0 font-mono text-[10px] tabular-nums text-accent">
                   {active ? `${item.transitionIn.toFixed(2)}s` : "—"}
                 </span>
               </div>
@@ -85,7 +85,7 @@ export default function TransitionPanel({ clips, timeline, onChange, onPreview }
                   type="button"
                   onClick={() => onPreview(clip.key)}
                   disabled={!active}
-                  className="focus-ring grid h-[26px] w-[26px] shrink-0 place-items-center rounded-md border border-line text-ink transition hover:bg-ink/[0.03] disabled:pointer-events-none disabled:opacity-40"
+                  className="focus-ring grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg border border-line bg-surface text-accent transition hover:border-accent/55 disabled:pointer-events-none disabled:opacity-40 cursor-pointer"
                   aria-label={t("transition.previewAria")}
                   title={t("transition.previewAria")}
                 >

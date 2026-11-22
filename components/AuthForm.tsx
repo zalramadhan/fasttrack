@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { Wordmark } from "./Logo";
 
 type Mode = "login" | "register";
 
@@ -127,11 +128,11 @@ export default function AuthForm({
 
       <header className="relative z-10 border-b border-white/10 bg-[#101110]/55 backdrop-blur-xl">
         <div className="mx-auto flex h-[74px] max-w-[1160px] items-center justify-between gap-4 px-6">
-          <a
-            href="/"
-            className="font-display text-[22px] font-bold tracking-[-0.04em] text-[#F4F5F1]"
-          >
-            fasttrack
+          <a href="/" className="flex items-center whitespace-nowrap">
+            <Wordmark
+              markClassName="h-7 w-7 text-[#C3F36B]"
+              textClassName="text-[22px] text-[#F4F5F1]"
+            />
           </a>
           <div className="flex items-center gap-4">
             <a

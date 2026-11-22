@@ -43,7 +43,7 @@ interface HeroSectionProps {
   onLocaleChange: (next: Locale) => void;
   loadedMedia: LoadedMedia | null;
   onMediaSelect: (media: LoadedMedia | null) => void;
-  onStart: () => void;
+  onStart: (media?: LoadedMedia) => void;
   isAuthenticated: boolean;
 }
 
@@ -135,12 +135,15 @@ export function HeroSection({
         return;
       }
       setUrlError(null);
-      onMediaSelect({
+      const media: LoadedMedia = {
         type: 'url',
         label: parsed.href,
         platform: matched.name,
         url: parsed.href,
-      });
+      };
+      onMediaSelect(media);
+      // Go straight to the workspace with the pasted link queued.
+      onStart(media);
     } catch {
       setUrlError(
         locale === 'en'
@@ -368,7 +371,7 @@ export function HeroSection({
                   <div className="flex items-center gap-3 shrink-0">
                     <button
                       type="button"
-                      onClick={onStart}
+                      onClick={() => onStart()}
                       className="font-bold text-[#C3F36B] hover:underline whitespace-nowrap cursor-pointer"
                     >
                       {locale === 'en' ? 'Open in workspace' : 'Buka di editor'}

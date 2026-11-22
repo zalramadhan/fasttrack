@@ -44,28 +44,33 @@ export default function OnboardingTutorial() {
         ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-xl">
-        <h2 className="text-[18px] font-semibold text-ink">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[22px] border border-line bg-surface p-6 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+        <p className="text-[10px] font-bold uppercase tracking-[1.6px] text-accent">
+          {lang === "id" ? "PANDUAN CEPAT" : "QUICK START"}
+        </p>
+        <h2 className="font-display mt-2 text-[22px] font-semibold tracking-[-0.03em] text-ink">
           {lang === "id" ? "Selamat datang di fasttrack" : "Welcome to fasttrack"}
         </h2>
-        <p className="mt-1 text-[12px] text-muted">
+        <p className="mt-1 text-[12.5px] text-muted">
           {lang === "id"
             ? "Ikuti langkah singkat ini untuk mulai."
             : "A quick walkthrough to get started."}
         </p>
-        <ol className="mt-4 space-y-2 text-[13px] text-ink">
+        <ol className="mt-4 space-y-2.5 text-[13px] text-ink">
           {steps.map((step, index) => (
-            <li key={index} className="flex gap-2">
-              <span className="font-semibold text-muted">{index + 1}.</span>
-              <span>{step}</span>
+            <li key={index} className="flex gap-2.5">
+              <span className="font-mono text-[12px] font-bold tabular-nums text-accent">
+                0{index + 1}
+              </span>
+              <span className="leading-snug">{step}</span>
             </li>
           ))}
         </ol>
         <button
           type="button"
           onClick={close}
-          className="btn btn-primary mt-5 w-full"
+          className="btn btn-primary mt-5 min-h-[44px] w-full"
         >
           {lang === "id" ? "Mengerti" : "Got it"}
         </button>

@@ -71,12 +71,13 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
     }
   }
 
+
   return (
     <section id="source-card" className="card overflow-hidden scroll-mt-20">
       <header className="flex min-h-11 items-center justify-between gap-3 border-b border-line px-3.5 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
           <h2 className="card-title whitespace-nowrap">{t("source.title")}</h2>
-          <span className="chip whitespace-nowrap tabular-nums">
+          <span className="font-mono text-[11px] font-medium tabular-nums text-muted whitespace-nowrap">
             {clips.length}/{MAX_CLIPS} {t("source.count")}
           </span>
         </div>
@@ -89,7 +90,7 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-label={t(open ? "source.collapse" : "source.expand")}
-            className="focus-ring -mr-1.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-ink/[0.04] hover:text-ink"
+            className="focus-ring -mr-1.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-ink/[0.04] hover:text-ink cursor-pointer"
           >
             <ChevronDownIcon
               className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
@@ -116,20 +117,20 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
               void handleFile(event.dataTransfer.files?.[0]);
             }}
             disabled={disabled}
-            className={`focus-ring flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-5 text-center transition disabled:opacity-50 ${
+            className={`focus-ring flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-5 text-center transition cursor-pointer disabled:opacity-50 ${
               dragging
-                ? "border-ink/40 bg-ink/[0.03]"
-                : "border-line-strong bg-paper/40 hover:border-ink/30 hover:bg-ink/[0.02]"
+                ? "border-accent bg-accent/10"
+                : "border-line-strong bg-paper/70 hover:border-accent/55 hover:bg-paper"
             }`}
           >
-            <span className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-ink">
+            <span className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-accent">
               {working === "upload" ? (
                 <SpinnerIcon className="h-4 w-4" />
               ) : (
                 <UploadIcon className="h-4 w-4" />
               )}
             </span>
-            <span className="text-[12.5px] font-medium text-ink">
+            <span className="text-[12.5px] font-semibold text-ink">
               {working === "upload"
                 ? t("common.uploading")
                 : full
@@ -178,7 +179,7 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
 
         <div className="min-w-0">
           {clips.length === 0 ? (
-            <div className="flex h-full min-h-[128px] flex-col items-center justify-center gap-1.5 rounded-xl border border-line bg-paper/40 text-center">
+            <div className="flex h-full min-h-[128px] flex-col items-center justify-center gap-2 rounded-xl border border-line bg-paper/60 p-4 text-center">
               <FilmIcon className="h-5 w-5 text-muted" />
               <p className="text-[11.5px] text-muted">{t("source.none")}</p>
               <p className="text-[10px] text-muted/80">{t("source.noneHint")}</p>
@@ -188,14 +189,14 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
               {clips.map((clip, index) => (
                 <div
                   key={clip.key}
-                  className="flex items-center gap-2.5 rounded-lg border border-line bg-surface px-2.5 py-1.5"
+                  className="flex items-center gap-2.5 rounded-[10px] border border-line bg-paper/70 px-2.5 py-2"
                 >
-                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-paper font-mono text-[10px] tabular-nums text-muted">
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded bg-surface font-mono text-[10px] font-bold tabular-nums text-accent">
                     {index + 1}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[12px] font-medium text-ink">{clip.asset.name}</p>
-                    <p className="text-[10px] tabular-nums text-muted">
+                    <p className="font-mono text-[10px] tabular-nums text-muted">
                       {formatTime(clip.asset.duration, true)} ·{" "}
                       {clip.asset.width && clip.asset.height
                         ? `${clip.asset.width}×${clip.asset.height}`
@@ -205,7 +206,7 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
                   <button
                     type="button"
                     onClick={() => onRemove(clip.key)}
-                    className="focus-ring rounded-md p-1 text-muted transition hover:text-ink"
+                    className="focus-ring rounded-md p-1 text-muted transition hover:text-ink cursor-pointer"
                     aria-label={t("source.remove", { name: clip.asset.name })}
                   >
                     <TrashIcon className="h-3.5 w-3.5" />
@@ -217,7 +218,7 @@ export default function SourceCard({ clips, busy, onAdd, onRemove }: Props) {
                   type="button"
                   onClick={() => inputRef.current?.click()}
                   disabled={disabled}
-                  className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line px-2 py-1.5 text-[11px] font-medium text-muted transition hover:border-ink/30 hover:text-ink disabled:opacity-40"
+                  className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-line-strong px-2 py-2 text-[11px] font-semibold text-muted transition hover:border-accent/55 hover:text-ink cursor-pointer disabled:opacity-40"
                 >
                   <PlusIcon className="h-3.5 w-3.5" /> {t("source.addAnother")}
                 </button>

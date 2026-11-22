@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 import AccountMenu from "./AccountMenu";
 import LanguageToggle from "./LanguageToggle";
 import ThemeToggle from "./ThemeToggle";
-import LogoMark from "./Logo";
+import { Wordmark } from "./Logo";
 import {
   DownloadIcon,
   FilmIcon,
@@ -38,10 +38,10 @@ export default function HelpGuide({ user }: { user: PublicUser | null }) {
       <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex h-[56px] max-w-4xl items-center justify-between px-4">
           <a href="/" className="flex items-center gap-2.5">
-            <LogoMark className="h-7 w-7 text-ink" />
-            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
-              fasttrack
-            </span>
+            <Wordmark
+              markClassName="h-7 w-7 text-accent"
+              textClassName="text-[20px] text-ink"
+            />
           </a>
           <div className="flex items-center gap-2">
             <LanguageToggle />

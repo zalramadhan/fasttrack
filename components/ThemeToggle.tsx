@@ -8,10 +8,10 @@ type Theme = "light" | "dark";
 
 export default function ThemeToggle() {
   const { t } = useI18n();
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+    setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
   }, []);
 
   function toggle() {

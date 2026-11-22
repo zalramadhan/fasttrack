@@ -120,7 +120,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div
-      className={`inline-flex items-center gap-0.5 rounded-lg border border-line bg-paper/70 p-0.5 ${
+      className={`inline-flex items-center gap-0.5 rounded-[10px] border border-line bg-paper p-0.5 ${
         full ? "flex w-full" : ""
       }`}
     >
@@ -132,9 +132,9 @@ export function Segmented<T extends string>({
             type="button"
             title={option.title}
             onClick={() => onChange(option.value)}
-            className={`focus-ring flex-1 rounded-[6px] px-2 py-1 text-[11.5px] font-medium transition ${
+            className={`focus-ring flex-1 rounded-[7px] px-2 py-1 text-[11.5px] font-semibold transition cursor-pointer ${
               active
-                ? "bg-surface text-ink shadow-[0_1px_2px_rgba(20,20,25,0.08)]"
+                ? "bg-accent text-accent-ink"
                 : "text-muted hover:text-ink"
             }`}
           >
@@ -171,13 +171,13 @@ export function Switch({
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={`focus-ring relative h-[22px] w-[38px] shrink-0 rounded-full border transition ${
-          checked ? "border-ink bg-ink" : "border-line-strong bg-paper"
+        className={`focus-ring relative h-[22px] w-[38px] shrink-0 rounded-full border transition cursor-pointer ${
+          checked ? "border-accent bg-accent" : "border-line-strong bg-paper"
         }`}
       >
         <span
-          className={`absolute top-1/2 h-[16px] w-[16px] -translate-y-1/2 rounded-full bg-paper shadow-sm transition-all ${
-            checked ? "left-[19px]" : "left-[2px]"
+          className={`absolute top-1/2 h-[16px] w-[16px] -translate-y-1/2 rounded-full shadow-sm transition-all ${
+            checked ? "left-[19px] bg-accent-ink" : "left-[2px] bg-muted"
           }`}
         />
       </button>
@@ -196,7 +196,7 @@ export function ColorField({
 }) {
   return (
     <Field label={label} hint={value.toUpperCase()}>
-      <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-1.5 py-1">
+      <div className="flex items-center gap-2 rounded-[10px] border border-line bg-paper px-1.5 py-1 focus-within:border-accent">
         <input
           type="color"
           value={value}

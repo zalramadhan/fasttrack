@@ -58,18 +58,18 @@ export default function AudioPanel({
     <Panel title={t("audio.title")}>
       {music ? (
         <div className="space-y-3">
-          <div className="flex items-center gap-2.5 rounded-lg border border-line bg-paper/50 px-2.5 py-2">
-            <MusicIcon className="h-4 w-4 shrink-0 text-ink" />
+          <div className="flex items-center gap-2.5 rounded-[10px] border border-line bg-paper/60 px-2.5 py-2">
+            <MusicIcon className="h-4 w-4 shrink-0 text-accent" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[12px] font-medium text-ink">{music.name}</p>
-              <p className="text-[10.5px] tabular-nums text-muted">
+              <p className="font-mono text-[10.5px] tabular-nums text-muted">
                 {formatTime(music.duration, true)} · {t("audio.looped")}
               </p>
             </div>
             <button
               type="button"
               onClick={() => onMusic(null)}
-              className="focus-ring rounded-md p-1 text-muted transition hover:text-ink"
+              className="focus-ring rounded-md p-1 text-muted transition hover:text-ink cursor-pointer"
               aria-label={t("audio.remove")}
             >
               <TrashIcon className="h-3.5 w-3.5" />
@@ -109,14 +109,14 @@ export default function AudioPanel({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="focus-ring flex w-full items-center gap-2.5 rounded-lg border border-dashed border-line-strong bg-paper/40 px-3 py-3 text-left transition hover:border-ink/30 hover:bg-ink/[0.02]"
+          className="focus-ring flex w-full items-center gap-2.5 rounded-xl border border-dashed border-line-strong bg-paper/60 px-3 py-3 text-left transition hover:border-accent/55 hover:bg-paper cursor-pointer"
           disabled={loading}
         >
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line bg-surface text-ink">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line bg-surface text-accent">
             {loading ? <SpinnerIcon className="h-3.5 w-3.5" /> : <MusicIcon className="h-4 w-4" />}
           </span>
           <span>
-            <span className="block text-[12px] font-medium text-ink">
+            <span className="block text-[12px] font-semibold text-ink">
               {loading ? t("common.uploading") : t("audio.add")}
             </span>
             <span className="block text-[10.5px] text-muted">{t("audio.formats")}</span>

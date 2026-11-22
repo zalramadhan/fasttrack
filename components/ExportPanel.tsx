@@ -173,14 +173,14 @@ export default function ExportPanel({
                   type="button"
                   onClick={() => onQuality(option.value)}
                   disabled={busy}
-                  className={`focus-ring rounded-lg border px-2.5 py-2 text-left transition ${
+                  className={`focus-ring rounded-[10px] border px-2.5 py-2 text-left transition cursor-pointer ${
                     quality === option.value
-                      ? "border-ink bg-ink/[0.03]"
-                      : "border-line hover:border-line-strong"
+                      ? "border-accent bg-accent/[0.08]"
+                      : "border-line bg-paper/45 hover:border-line-strong"
                   }`}
                 >
                   <span className="flex items-baseline justify-between">
-                    <span className="text-[12px] font-medium text-ink">{option.title}</span>
+                    <span className="text-[12px] font-semibold text-ink">{option.title}</span>
                     <span className="font-mono text-[10px] text-muted">{option.bitrate}</span>
                   </span>
                   <span className="mt-0.5 block text-[10px] leading-snug text-muted">
@@ -191,12 +191,12 @@ export default function ExportPanel({
             </div>
           </FieldGroup>
         ) : (
-          <div className="rounded-lg border border-line bg-paper/60 px-3 py-2.5 text-[11px] leading-relaxed text-muted">
+          <div className="rounded-[10px] border border-line bg-paper/60 px-3 py-2.5 text-[11px] leading-relaxed text-muted">
             {t("export.freePlan")}
           </div>
         )}
 
-        <div className="rounded-lg border border-line bg-paper/60 px-2.5 py-2">
+        <div className="rounded-[10px] border border-line bg-paper/60 px-3 py-2.5">
           <dl className="space-y-1.5 text-[11.5px]">
             <SummaryRow label={t("export.ratioRes")} value={`${width}×${height}`} />
             <SummaryRow label={t("export.duration")} value={formatTime(duration, true)} />
@@ -227,13 +227,13 @@ export default function ExportPanel({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-medium text-ink">{stageLabel}</span>
-              <span className="font-mono tabular-nums text-muted">
+              <span className="font-mono tabular-nums text-accent">
                 {Math.round(overall * 100)}%
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-line">
               <div
-                className="h-full rounded-full bg-ink transition-[width] duration-300"
+                className="h-full rounded-full bg-accent transition-[width] duration-300"
                 style={{ width: `${Math.max(2, overall * 100)}%` }}
               />
             </div>

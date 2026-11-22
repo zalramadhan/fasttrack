@@ -9,7 +9,7 @@ export default function LanguageToggle() {
     <div
       role="group"
       aria-label={t("common.language")}
-      className="inline-flex items-center gap-0.5 rounded-lg border border-line bg-paper/70 p-0.5"
+      className="inline-flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5"
     >
       {(["en", "id"] as const).map((value) => {
         const active = lang === value;
@@ -19,9 +19,9 @@ export default function LanguageToggle() {
             type="button"
             onClick={() => setLang(value)}
             aria-pressed={active}
-            className={`focus-ring rounded-[6px] px-2 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] transition ${
+            className={`focus-ring rounded-md px-2 py-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] transition cursor-pointer ${
               active
-                ? "bg-surface text-ink shadow-[0_1px_2px_rgba(20,20,25,0.08)]"
+                ? "bg-accent text-accent-ink"
                 : "text-muted hover:text-ink"
             }`}
           >

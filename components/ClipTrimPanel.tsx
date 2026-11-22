@@ -22,8 +22,8 @@ export default function ClipTrimPanel({ clips, totalDuration, onChange, disabled
       title={t("trim.title")}
       action={
         <span
-          className={`chip tabular-nums ${
-            totalDuration > MAX_DURATION ? "border-red-400 text-red-500" : ""
+          className={`font-mono text-[11px] font-semibold tabular-nums ${
+            totalDuration > MAX_DURATION ? "text-red-400" : "text-muted"
           }`}
         >
           {formatTime(totalDuration, true)}
@@ -109,10 +109,10 @@ function ClipRow({
   }
 
   return (
-    <div className="rounded-lg border border-line px-2.5 py-2">
+    <div className="rounded-[10px] border border-line bg-paper/45 px-2.5 py-2">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="grid h-4 w-4 shrink-0 place-items-center rounded bg-paper font-mono text-[9px] tabular-nums text-muted">
+          <span className="grid h-4 w-4 shrink-0 place-items-center rounded bg-surface font-mono text-[9px] font-bold tabular-nums text-accent">
             {index + 1}
           </span>
           <span className="truncate text-[11.5px] font-medium text-ink">{clip.asset.name}</span>
@@ -128,7 +128,7 @@ function ClipRow({
         onPointerMove={handleMove}
         onPointerUp={handleUp}
         onPointerCancel={handleUp}
-        className={`relative h-6 touch-none select-none overflow-hidden rounded-md bg-paper ${
+        className={`relative h-6 touch-none select-none overflow-hidden rounded-md border border-line bg-paper ${
           disabled ? "opacity-50" : ""
         }`}
       >
@@ -136,20 +136,20 @@ function ClipRow({
           className="absolute inset-y-0"
           style={{ left: `${startFrac * 100}%`, width: `${(endFrac - startFrac) * 100}%` }}
         >
-          <div className="absolute inset-0 rounded-[3px] bg-ink/80" />
+          <div className="absolute inset-0 rounded-[3px] bg-accent/85" />
           <div
             data-handle="start"
             className="absolute inset-y-0 left-0 w-3.5 cursor-ew-resize"
             aria-label={t("trim.dragStart")}
           >
-            <div className="absolute inset-y-0.5 left-1 w-[2px] rounded-full bg-paper/90" />
+            <div className="absolute inset-y-1 left-1 w-[2px] rounded-full bg-accent-ink" />
           </div>
           <div
             data-handle="end"
             className="absolute inset-y-0 right-0 w-3.5 cursor-ew-resize"
             aria-label={t("trim.dragEnd")}
           >
-            <div className="absolute inset-y-0.5 right-1 w-[2px] rounded-full bg-paper/90" />
+            <div className="absolute inset-y-1 right-1 w-[2px] rounded-full bg-accent-ink" />
           </div>
         </div>
       </div>

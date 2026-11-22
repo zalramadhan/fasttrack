@@ -48,7 +48,7 @@ import LanguageToggle from "./LanguageToggle";
 import AccountMenu from "./AccountMenu";
 import VerifyEmailBanner from "./VerifyEmailBanner";
 import OnboardingTutorial from "./OnboardingTutorial";
-import LogoMark from "./Logo";
+import { Wordmark } from "./Logo";
 import { useI18n, type MessageKey } from "@/lib/i18n";
 import { isLoopEffect } from "@/lib/text-animations";
 
@@ -130,6 +130,8 @@ type Props = {
   bootAsset?: MediaAsset | null;
   /** Project restored from the user's saved slot. */
   initialProject?: SavedProject | null;
+  /** Error from the queued source that was handed over before the editor opened. */
+  initialError?: string | null;
   shopeeUrl?: string;
 };
 
@@ -137,6 +139,7 @@ export default function Editor({
   user,
   bootAsset,
   initialProject,
+  initialError,
   shopeeUrl = "",
 }: Props) {
   const { t, errorText } = useI18n();
@@ -169,7 +172,7 @@ export default function Editor({
   const [musicVolume, setMusicVolume] = useState(() => saved?.musicVolume ?? 0.7);
   const [musicOffset, setMusicOffset] = useState(() => saved?.musicOffset ?? 0);
   const [sourceBusy, setSourceBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
   const [exportState, setExportState] = useState<ExportUIState>(initialState);
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
@@ -612,20 +615,22 @@ export default function Editor({
   const hasClips = clips.length > 0;
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
-        <div className="mx-auto flex h-[56px] max-w-[1580px] items-center justify-between px-4">
-          <div className="flex items-center gap-2.5">
-            <LogoMark className="h-7 w-7 shrink-0 text-ink" />
-            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
-              fasttrack
+    <div className="min-h-screen bg-paper text-ink">
+      <header className="sticky top-0 z-40 border-b border-line bg-paper/75 backdrop-blur-2xl backdrop-saturate-150">
+        <div className="mx-auto flex h-[62px] max-w-[1580px] items-center justify-between px-4 sm:px-5">
+          <a href="/" className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
+            <Wordmark
+              markClassName="h-7 w-7 text-accent"
+              textClassName="text-[22px] text-ink"
+            />
+            <span className="hidden font-mono text-[10px] uppercase tracking-[0.12em] text-muted sm:inline">
+              / studio
             </span>
-            <span className="chip hidden sm:inline">video → mp4</span>
-          </div>
+          </a>
 
           <div className="hidden items-center gap-2 md:flex">
             {totalDuration > 0 && (
-              <span className="hidden font-mono text-[11px] tabular-nums text-muted sm:inline">
+              <span className="hidden pr-1 font-mono text-[11px] tabular-nums text-muted lg:inline">
                 {t(clips.length === 1 ? "editor.summaryOne" : "editor.summary", {
                   videos: clips.length,
                   duration: formatTime(totalDuration, true),
@@ -641,7 +646,7 @@ export default function Editor({
               onClick={() => void handleSave()}
               disabled={!hasClips || saving}
               aria-label={t("project.save")}
-              className="focus-ring inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-2 text-[12px] font-medium text-ink transition hover:border-line-strong hover:bg-ink/[0.03] disabled:opacity-40 sm:min-h-0 sm:py-1.5"
+              className="btn min-h-[38px] px-3 py-1.5 text-[12px] whitespace-nowrap"
             >
               <SaveIcon className="h-3.5 w-3.5" />
               <span>
@@ -656,7 +661,7 @@ export default function Editor({
               type="button"
               onClick={() => setStep("export")}
               disabled={!hasClips}
-              className="focus-ring inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-ink bg-ink px-3 py-2 text-[12px] font-medium text-on-ink transition hover:bg-ink/90 disabled:opacity-40 sm:min-h-0 sm:py-1.5"
+              className="btn btn-primary min-h-[38px] px-3.5 py-1.5 text-[12px] whitespace-nowrap"
             >
               <DownloadIcon className="h-3.5 w-3.5" />
               Export
@@ -668,7 +673,7 @@ export default function Editor({
             onClick={() => setMobileMenu((value) => !value)}
             aria-label={t(mobileMenu ? "editor.mobileClose" : "editor.mobileMenu")}
             aria-expanded={mobileMenu}
-            className="focus-ring grid h-10 w-10 place-items-center rounded-lg border border-line bg-surface text-ink md:hidden"
+            className="focus-ring grid h-10 w-10 place-items-center rounded-[10px] border border-line bg-surface text-ink md:hidden"
           >
             {mobileMenu ? (
               <XIcon className="h-4 w-4" />
@@ -679,9 +684,9 @@ export default function Editor({
         </div>
 
         {mobileMenu && (
-          <div className="absolute left-0 right-0 top-[56px] z-50 border-b border-line bg-surface p-3 shadow-xl md:hidden">
+          <div className="absolute left-0 right-0 top-[62px] z-50 border-b border-line bg-surface p-3 shadow-2xl md:hidden">
             <div className="mx-auto max-w-[1580px]">
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper/60 px-3 py-2">
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-line bg-paper px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-[11.5px] font-medium text-ink">
                     {user.email}
@@ -724,7 +729,7 @@ export default function Editor({
                 </button>
               </div>
 
-              <div className="mt-2 flex items-center justify-between rounded-lg border border-line px-2.5 py-1.5">
+              <div className="mt-2 flex items-center justify-between rounded-xl border border-line px-2.5 py-1.5">
                 <span className="text-[10.5px] text-muted">{t("common.language")}</span>
                 <div className="flex items-center gap-2">
                   <LanguageToggle />
@@ -755,7 +760,7 @@ export default function Editor({
 
       <VerifyEmailBanner user={user} />
 
-      <main className="mx-auto max-w-[1580px] px-3 pb-10 pt-3">
+      <main className="mx-auto max-w-[1580px] px-3 pb-10 pt-3 sm:px-4">
         <SourceCard
           clips={clips}
           busy={sourceBusy}
@@ -766,17 +771,15 @@ export default function Editor({
         {error && <p className="alert mt-3">{error}</p>}
 
         {!hasClips && (
-          <p className="mt-3 text-center text-[11.5px] leading-relaxed text-muted">
+          <p className="mt-3 text-center text-[12px] leading-relaxed text-muted">
             {t("editor.empty")}
           </p>
         )}
 
-        {hasClips && (
-        <>
-        <nav className="mt-3 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface p-1">
+        <nav className="mt-3 flex gap-1 overflow-x-auto rounded-2xl border border-line bg-surface p-1">
           {STEPS.map((item) => {
             const active = item.id === step;
-            const reachable = item.id === "source" || hasClips;
+            const reachable = true;
             return (
               <button
                 key={item.id}
@@ -789,15 +792,15 @@ export default function Editor({
                   }
                   setStep(item.id);
                 }}
-                className={`focus-ring flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11.5px] font-medium transition disabled:opacity-40 sm:min-h-0 sm:py-1.5 ${
+                className={`focus-ring flex min-h-10 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] px-2.5 py-2 text-[12px] font-semibold transition cursor-pointer disabled:opacity-40 sm:min-h-0 sm:py-2 ${
                   active
-                    ? "bg-ink text-on-ink"
-                    : "text-muted hover:bg-ink/[0.03] hover:text-ink"
+                    ? "bg-accent text-accent-ink font-bold"
+                    : "text-muted hover:bg-ink/[0.04] hover:text-ink"
                 }`}
               >
                 <span
-                  className={`font-mono text-[9.5px] tabular-nums ${
-                    active ? "text-on-ink/60" : "text-muted/70"
+                  className={`font-mono text-[10px] tabular-nums ${
+                    active ? "text-accent-ink/75" : "text-muted/70"
                   }`}
                 >
                   {item.num}
@@ -918,13 +921,15 @@ export default function Editor({
 
             <div className="px-1 text-[10.5px] leading-relaxed text-muted">
               <p>{t("editor.privacy")}</p>
-              <div className="mt-1.5 flex flex-wrap items-center gap-3">                <a href="/help" className="inline-flex items-center gap-1 transition hover:text-ink">
+              <div className="mt-1.5 flex flex-wrap items-center gap-3">
+                <a href="/help" className="inline-flex items-center gap-1 transition hover:text-accent">
                   <HelpIcon className="h-3 w-3" /> {t("account.help")}
                 </a>
-                <a href="https://github.com/zalramadhan"
+                <a
+                  href="https://github.com/zalramadhan"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 transition hover:text-ink"
+                  className="inline-flex items-center gap-1 transition hover:text-accent"
                 >
                   <GithubIcon className="h-3 w-3" /> GitHub
                 </a>
@@ -932,18 +937,18 @@ export default function Editor({
                   href="https://instagram.com/zalsomeone"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 transition hover:text-ink"
+                  className="inline-flex items-center gap-1 transition hover:text-accent"
                 >
                   <InstagramIcon className="h-3 w-3" /> @zalsomeone
                 </a>
-                <a href="/" className="transition hover:text-ink">
+                <a href="/" className="transition hover:text-accent">
                   {t("editor.home")}
                 </a>
               </div>
             </div>
           </div>
 
-          <div className="sticky top-[56px] z-30 order-1 h-[clamp(336px,55dvh,560px)] shrink-0 bg-paper sm:h-[clamp(360px,50vh,580px)] xl:order-2 xl:h-[calc(100vh-68px)]">
+          <div className="sticky top-[62px] z-30 order-1 h-[clamp(336px,55dvh,560px)] shrink-0 bg-paper sm:h-[clamp(360px,50vh,580px)] xl:order-2 xl:h-[calc(100vh-74px)]">
             <PreviewStage
               previewRef={previewRef}
               clips={clips}
@@ -970,8 +975,6 @@ export default function Editor({
             />
           </div>
         </div>
-        </>
-        )}
       </main>
       <OnboardingTutorial />
     </div>

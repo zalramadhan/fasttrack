@@ -20,3 +20,22 @@ export default function LogoMark({ className = "h-7 w-7", title }: Props) {
     </svg>
   );
 }
+
+/** Mark plus wordmark, shared by every header in the app. */
+export function Wordmark({
+  className = "",
+  markClassName = "h-7 w-7",
+  textClassName = "text-[22px]",
+}: Props & {
+  markClassName?: string;
+  textClassName?: string;
+}) {
+  return (
+    <span className={`inline-flex items-center gap-2.5 whitespace-nowrap ${className}`}>
+      <LogoMark className={`shrink-0 ${markClassName}`} />
+      <span className={`font-display font-bold tracking-[-0.04em] ${textClassName}`}>
+        fasttrack
+      </span>
+    </span>
+  );
+}

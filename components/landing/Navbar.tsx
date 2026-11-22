@@ -5,6 +5,7 @@ import { ArrowUpRight, Menu, X } from 'lucide-react';
 import type { PublicUser } from '@/lib/types';
 import { COPY, Locale } from './content';
 import { AccountMenu } from './AccountMenu';
+import LogoMark from '../Logo';
 
 interface NavbarProps {
   locale: Locale;
@@ -32,12 +33,15 @@ export function Navbar({ locale, user, onStartClick }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 h-[74px] border-b border-white/12 bg-[#101110]/45 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
       <div className="mx-auto flex h-full max-w-[1160px] items-center justify-between gap-8 px-6">
-        {/* Zone 1: Single text element wordmark */}
+        {/* Zone 1: Brand mark + wordmark */}
         <a
           href="#top"
-          className="font-display text-[22px] font-bold tracking-[-0.04em] text-[#F4F5F1] whitespace-nowrap shrink-0"
+          className="flex items-center gap-2.5 whitespace-nowrap shrink-0"
         >
-          fasttrack
+          <LogoMark className="h-7 w-7 shrink-0 text-[#C3F36B]" />
+          <span className="font-display text-[22px] font-bold tracking-[-0.04em] text-[#F4F5F1]">
+            fasttrack
+          </span>
         </a>
 
         {/* Zone 2: 4 concise single-line nav links */}

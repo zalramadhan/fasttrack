@@ -41,8 +41,7 @@ export default function LandingPage({
     document.documentElement.lang = next;
   }
 
-  async function rememberMedia() {
-    const media = loadedMedia;
+  async function rememberMedia(media = loadedMedia) {
     if (!media) return;
     try {
       if (media.type === "file" && media.file) {
@@ -64,8 +63,8 @@ export default function LandingPage({
     }
   }
 
-  async function start() {
-    await rememberMedia();
+  async function start(media?: LoadedMedia) {
+    await rememberMedia(media ?? loadedMedia);
     if (isAuthenticated) {
       window.location.assign("/editor");
       return;
@@ -92,7 +91,7 @@ export default function LandingPage({
             onLocaleChange={changeLocale}
             loadedMedia={loadedMedia}
             onMediaSelect={setLoadedMedia}
-            onStart={() => void start()}
+            onStart={(media) => void start(media)}
             isAuthenticated={isAuthenticated}
           />
 
@@ -126,7 +125,7 @@ export default function LandingPage({
           mode={authMode}
           locale={locale}
           mediaLabel={loadedMedia?.label}
-          continueToEditor={Boolean(loadedMedia)}
+          continueToEditor={true}
           onClose={() => setAuthMode(null)}
           onSwitch={setAuthMode}
         />

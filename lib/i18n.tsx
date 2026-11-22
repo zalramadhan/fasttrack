@@ -43,6 +43,7 @@ const EN = {
   "start.publicNote":
     "Create a free account when you're ready to edit. Your selected video stays in this browser so you can continue right after signing up.",
   "start.preparing": "Preparing your video…",
+  "start.opening": "Opening workspace…",
   "start.signIn": "Log in",
   "start.createAccount": "Create account",
 
@@ -556,6 +557,7 @@ const ID: Record<MessageKey, string> = {
   "start.publicNote":
     "Buat akun gratis saat kamu siap mengedit. Video yang dipilih tetap tersimpan di browser ini, jadi bisa langsung lanjut setelah daftar.",
   "start.preparing": "Menyiapkan videomu…",
+  "start.opening": "Membuka workspace…",
   "start.signIn": "Masuk",
   "start.createAccount": "Buat akun",
 

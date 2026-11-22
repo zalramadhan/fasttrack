@@ -551,19 +551,19 @@ export default function PreviewStage(props: Props) {
   }
 
   return (
-    <section className="card flex h-full min-h-0 flex-col overflow-hidden">
-      <header className="flex h-11 shrink-0 items-center justify-between gap-3 border-b border-line px-3.5">
-        <div className="flex min-w-0 items-center gap-2">
+    <section className="card flex h-full min-h-0 flex-col overflow-hidden shadow-[0_24px_70px_-36px_rgba(0,0,0,0.6)]">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-3.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="card-title shrink-0">{t("preview.ratio")}</span>
-          <div className="flex items-center gap-0.5 rounded-lg bg-paper p-0.5">
+          <div className="flex items-center gap-0.5 rounded-[10px] border border-line bg-paper p-0.5">
             {RATIO_OPTIONS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => onRatio(option.value)}
-                className={`focus-ring rounded-[6px] px-2 py-1 text-[11.5px] font-medium tabular-nums transition ${
+                className={`focus-ring rounded-[7px] px-2 py-1 text-[11px] font-semibold tabular-nums transition cursor-pointer ${
                   ratio === option.value
-                    ? "bg-surface text-ink shadow-[0_1px_2px_rgba(20,20,25,0.08)]"
+                    ? "bg-accent text-accent-ink font-bold"
                     : "text-muted hover:text-ink"
                 }`}
               >
@@ -577,7 +577,7 @@ export default function PreviewStage(props: Props) {
               value={previewQuality}
               onChange={(event) => changeQuality(event.target.value as PreviewQuality)}
               title={t("preview.quality")}
-              className="focus-ring h-7 rounded-md border border-line bg-surface px-1.5 text-[10.5px] font-medium text-ink"
+              className="focus-ring h-7 rounded-lg border border-line bg-paper px-2 text-[11px] font-semibold text-ink"
             >
               <option value="full">{t("preview.full")}</option>
               <option value="half">{t("preview.half")}</option>
@@ -585,13 +585,12 @@ export default function PreviewStage(props: Props) {
             </select>
           </label>
         </div>
-        <span className="chip hidden shrink-0 tabular-nums sm:inline-flex">
+        <span className="hidden shrink-0 font-mono text-[11px] tabular-nums text-muted sm:inline">
           {exportSize.width}×{exportSize.height} · {formatTime(totalDuration, true)}
         </span>
       </header>
 
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-stage p-3">
-        <div className="absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.14)_1px,transparent_0)] [background-size:22px_22px]" />
+      <div className="studio-dot-grid relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-stage p-3 sm:p-4">
         {clips.length > 0 ? (
           <canvas
             ref={canvasRef}
@@ -601,29 +600,29 @@ export default function PreviewStage(props: Props) {
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="relative max-h-full max-w-full cursor-grab touch-none rounded-[6px] bg-black shadow-[0_24px_60px_-24px_rgba(0,0,0,0.8)] active:cursor-grabbing"
+            className="relative max-h-full max-w-full cursor-grab touch-none rounded-lg border border-white/10 bg-black shadow-[0_24px_60px_-24px_rgba(0,0,0,0.85)] active:cursor-grabbing"
           />
         ) : (
           <div className="relative flex flex-col items-center gap-2 text-center">
-            <span className="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-white/60">
+            <span className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-[#C3F36B]">
               <PlayIcon className="h-4 w-4" />
             </span>
-            <p className="text-[12px] text-white/70">{t("preview.empty")}</p>
-            <p className="text-[10.5px] text-white/35">{t("preview.emptyHint")}</p>
+            <p className="text-[12px] text-white/75">{t("preview.empty")}</p>
+            <p className="text-[10.5px] text-white/40">{t("preview.emptyHint")}</p>
           </div>
         )}
         {watermarked && clips.length > 0 && (
-          <div className="pointer-events-none absolute bottom-4 right-4 rounded-md bg-black/35 px-2 py-1 text-[11px] font-semibold tracking-[-0.01em] text-white/75 backdrop-blur-sm">
+          <div className="pointer-events-none absolute bottom-4 right-4 rounded-md bg-black/45 px-2 py-1 font-display text-[11px] font-bold tracking-[-0.02em] text-white/80 backdrop-blur-sm">
             fasttrack
           </div>
         )}
         {proxyPreparing && (
-          <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[10.5px] text-white/85 backdrop-blur-sm">
-            <SpinnerIcon className="h-3 w-3" /> {t("preview.preparing")}
+          <div className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-black/65 px-2 py-1 text-[10.5px] text-white/90 backdrop-blur-sm">
+            <SpinnerIcon className="h-3 w-3 text-[#C3F36B]" /> {t("preview.preparing")}
           </div>
         )}
         {proxyFailed && !proxyPreparing && (
-          <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-black/55 px-2 py-1 text-[10px] text-amber-200/90 backdrop-blur-sm">
+          <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-md border border-amber-300/20 bg-black/65 px-2 py-1 text-[10px] text-amber-200/90 backdrop-blur-sm">
             {t("preview.proxyFallback")}
           </div>
         )}
@@ -648,12 +647,12 @@ export default function PreviewStage(props: Props) {
         {music && <audio ref={musicRef} src={music.url} loop preload="auto" />}
       </div>
 
-      <div className="flex h-14 shrink-0 items-center gap-3 border-t border-line px-3.5">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-t border-line bg-surface px-3.5">
         <button
           type="button"
           onClick={() => onPlaying(!playing)}
           disabled={!clips.length}
-          className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink text-on-ink transition hover:bg-ink/90 disabled:opacity-30 sm:h-9 sm:w-9"
+          className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-accent-ink transition hover:bg-accent-hover disabled:opacity-30 cursor-pointer sm:h-9 sm:w-9"
           aria-label={playing ? t("preview.pause") : t("preview.play")}
         >
           {playing ? <PauseIcon className="h-4 w-4" /> : <PlayIcon className="h-4 w-4" />}
@@ -699,12 +698,12 @@ export default function PreviewStage(props: Props) {
             clips.length ? "cursor-pointer" : "opacity-40"
           }`}
         >
-          <div className="absolute inset-x-0 top-1/2 h-[4px] -translate-y-1/2 rounded-full bg-ink/10" />
+          <div className="absolute inset-x-0 top-1/2 h-[4px] -translate-y-1/2 rounded-full bg-line" />
           {timeline.map((item) => (
             <div
               key={item.clip.key}
               className={`absolute top-1/2 h-[4px] -translate-y-1/2 overflow-hidden rounded-full ${
-                item.index % 2 === 0 ? "bg-ink/35" : "bg-ink/20"
+                item.index % 2 === 0 ? "bg-accent/70" : "bg-accent/40"
               }`}
               style={{
                 left: `${(item.offset / scrubTotal) * 100}%`,
@@ -712,15 +711,15 @@ export default function PreviewStage(props: Props) {
               }}
             >
               {item.transitionIn > 0 && (
-                <span className="absolute inset-y-0 left-0 w-1.5 bg-[#e2452a]/75" />
+                <span className="absolute inset-y-0 left-0 w-1.5 bg-[#e2452a]/85" />
               )}
             </div>
           ))}
           <div
-            className="pointer-events-none absolute inset-y-0 w-[2px] -translate-x-1/2 bg-ink"
+            className="pointer-events-none absolute inset-y-0 w-[2px] -translate-x-1/2 bg-accent"
             style={{ left: `${playFrac * 100}%` }}
           >
-            <span className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-ink shadow-[0_1px_3px_rgba(20,20,25,0.35)]" />
+            <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-surface bg-accent shadow-[0_1px_4px_rgba(0,0,0,0.45)]" />
           </div>
         </div>
 
@@ -728,7 +727,7 @@ export default function PreviewStage(props: Props) {
           {formatTime(scrubTotal, true)}
         </span>
 
-        <span className="chip hidden shrink-0 tabular-nums sm:inline-flex">
+        <span className="hidden shrink-0 font-mono text-[10.5px] tabular-nums text-muted sm:inline">
           {clips.length > 1 ? t("preview.clipCount", { count: clips.length }) : ""}
           {baseRes}p · 30 fps
         </span>

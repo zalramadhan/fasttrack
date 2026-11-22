@@ -38,10 +38,10 @@ export default function VerifyEmailBanner({ user }: { user: PublicUser }) {
   }
 
   return (
-    <div className="border-b border-amber-500/25 bg-amber-500/[0.07]">
-      <div className="mx-auto flex max-w-[1580px] flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="border-b border-amber-400/25 bg-amber-400/[0.07]">
+      <div className="mx-auto flex max-w-[1580px] flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="flex items-start gap-2.5">
-          <MailIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
+          <MailIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
           <div>
             <p className="text-[11.5px] font-semibold text-ink">
               {t("verify.bannerTitle")}
@@ -50,12 +50,12 @@ export default function VerifyEmailBanner({ user }: { user: PublicUser }) {
               {t("verify.bannerBody", { email: user.email })}
             </p>
             {message && (
-              <p className="mt-1 text-[10.5px] font-medium text-emerald-700 dark:text-emerald-300">
+              <p className="mt-1 text-[10.5px] font-medium text-accent">
                 {message}
               </p>
             )}
             {error && (
-              <p className="mt-1 text-[10.5px] text-red-600 dark:text-red-400">
+              <p className="mt-1 text-[10.5px] text-red-400">
                 {error}
               </p>
             )}
@@ -65,7 +65,7 @@ export default function VerifyEmailBanner({ user }: { user: PublicUser }) {
           type="button"
           onClick={() => void resend()}
           disabled={busy}
-          className="btn shrink-0 self-start border-amber-500/30 bg-surface sm:self-auto"
+          className="btn shrink-0 self-start border-amber-400/35 bg-surface sm:self-auto"
         >
           {busy ? t("verify.sending") : t("verify.resend")}
         </button>

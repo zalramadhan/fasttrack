@@ -2,6 +2,7 @@
 
 import { HelpCircle } from 'lucide-react';
 import { COPY, Locale } from './content';
+import LogoMark from '../Logo';
 
 interface FooterProps {
   locale: Locale;
@@ -16,8 +17,11 @@ export function Footer({ locale, onLocaleChange, onOpenHelp }: FooterProps) {
     <footer className="mt-20 border-t border-white/8 bg-[#101110]">
       <div className="mx-auto flex max-w-[1160px] flex-col gap-4 px-6 py-9 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3 text-xs text-[#777D73]">
-          <span className="font-display text-lg font-bold tracking-tight text-[#F4F5F1]">
-            fasttrack
+          <span className="inline-flex items-center gap-2">
+            <LogoMark className="h-5 w-5 shrink-0 text-[#C3F36B]" />
+            <span className="font-display text-lg font-bold tracking-[-0.04em] text-[#F4F5F1]">
+              fasttrack
+            </span>
           </span>
           <span aria-hidden="true">·</span>
           <span>{t.notice}</span>
