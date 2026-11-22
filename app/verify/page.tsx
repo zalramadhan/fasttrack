@@ -1,4 +1,5 @@
 import VerifyResult from "@/components/VerifyResult";
+import { landingFontClass } from "../fonts";
 import { getCurrentUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
@@ -10,5 +11,11 @@ export default async function VerifyPage({
 }) {
   const { status } = await searchParams;
   const user = await getCurrentUser();
-  return <VerifyResult ok={status === "success"} signedIn={Boolean(user)} />;
+  return (
+    <VerifyResult
+      ok={status === "success"}
+      signedIn={Boolean(user)}
+      fontClass={landingFontClass}
+    />
+  );
 }

@@ -2,17 +2,20 @@
 
 import { useState } from 'react';
 import { ArrowUpRight, Menu, X } from 'lucide-react';
+import type { PublicUser } from '@/lib/types';
 import { COPY, Locale } from './content';
+import { AccountMenu } from './AccountMenu';
 
 interface NavbarProps {
   locale: Locale;
-  isAuthenticated: boolean;
+  user: PublicUser | null;
   onStartClick: () => void;
 }
 
-export function Navbar({ locale, isAuthenticated, onStartClick }: NavbarProps) {
+export function Navbar({ locale, user, onStartClick }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const t = COPY[locale].nav;
+  const isAuthenticated = Boolean(user);
   const cta = isAuthenticated
     ? locale === 'en'
       ? 'Open workspace'
@@ -52,6 +55,7 @@ export function Navbar({ locale, isAuthenticated, onStartClick }: NavbarProps) {
 
         {/* Zone 3: 1 primary CTA button */}
         <div className="flex items-center gap-3 shrink-0">
+          {user && <AccountMenu user={user} locale={locale} />}
           <a
             href={isAuthenticated ? '/editor' : '/register'}
             onClick={(event) => {

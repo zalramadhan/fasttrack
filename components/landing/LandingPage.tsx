@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MotionConfig } from "motion/react";
 import { savePendingSource } from "@/lib/pending-source";
+import type { PublicUser } from "@/lib/types";
 import type { Locale } from "./content";
 import { Navbar } from "./Navbar";
 import { HeroSection, type LoadedMedia } from "./HeroSection";
@@ -18,12 +19,13 @@ import { AuthModal, type AuthMode } from "./AuthModal";
 export default function LandingPage({
   lifetimePrice,
   fontClass,
-  isAuthenticated = false,
+  user,
 }: {
   lifetimePrice: number;
   fontClass?: string;
-  isAuthenticated?: boolean;
+  user?: PublicUser | null;
 }) {
+  const isAuthenticated = Boolean(user);
   const [locale, setLocale] = useState<Locale>("en");
   const [loadedMedia, setLoadedMedia] = useState<LoadedMedia | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
@@ -80,7 +82,7 @@ export default function LandingPage({
       >
         <Navbar
           locale={locale}
-          isAuthenticated={isAuthenticated}
+          user={user ?? null}
           onStartClick={() => void start()}
         />
 

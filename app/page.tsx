@@ -12,7 +12,7 @@ export default async function Page() {
     <LandingPage
       lifetimePrice={LIFETIME_PRICE}
       fontClass={landingFontClass}
-      isAuthenticated={Boolean(user)}
+      user={user}
     />
   );
 }

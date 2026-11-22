@@ -1,13 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeft, MailCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import LanguageToggle from "./LanguageToggle";
-import ThemeToggle from "./ThemeToggle";
-import LogoMark from "./Logo";
+import {
+  AuthShell,
+  authPrimaryButtonClass,
+  authSecondaryButtonClass,
+} from "./auth/AuthShell";
 
-export default function VerifyEmailForm({ token }: { token: string }) {
-  const { t } = useI18n();
+export default function VerifyEmailForm({
+  token,
+  fontClass,
+}: {
+  token: string;
+  fontClass?: string;
+}) {
+  const { t, lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(token ? null : t("verify.invalidLink"));
@@ -37,68 +46,60 @@ export default function VerifyEmailForm({ token }: { token: string }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line">
-        <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between px-5">
-          <a href="/" className="flex items-center gap-2.5">
-            <LogoMark className="h-7 w-7 shrink-0 text-ink" />
-            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
-              fasttrack
-            </span>
-          </a>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
+    <AuthShell
+      fontClass={fontClass}
+      eyebrow={lang === "id" ? "VERIFIKASI EMAIL" : "EMAIL VERIFICATION"}
+      title={done ? t("verify.successTitle") : t("verify.pageTitle")}
+      subtitle={done ? t("verify.successBody") : t("verify.pageBody")}
+    >
+      {done ? (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-[#C3F36B]/30 bg-[#C3F36B]/10 p-4">
+            <MailCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#C3F36B]" />
+            <p className="text-sm leading-relaxed text-[#F4F5F1]">{t("verify.successBody")}</p>
           </div>
+          <a href="/" className={authPrimaryButtonClass}>
+            {t("verify.openEditor")}
+          </a>
+          <a href="/login" className={authSecondaryButtonClass}>
+            {t("verify.login")}
+          </a>
         </div>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-5 py-12">
-        <div className="w-full max-w-[420px]">
-          <p className="label">fasttrack account</p>
-          <h1 className="mt-2 text-[28px] font-semibold leading-[1.1] tracking-[-0.03em] text-ink">
-            {done ? t("verify.successTitle") : t("verify.pageTitle")}
-          </h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            {done ? t("verify.successBody") : t("verify.pageBody")}
-          </p>
-
-          {done ? (
-            <div className="card mt-6 space-y-3 p-4">
-              <a href="/" className="btn btn-primary w-full justify-center">
-                {t("verify.openEditor")}
-              </a>
-              <a href="/login" className="btn w-full justify-center">
-                {t("verify.login")}
-              </a>
-            </div>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-xl border border-[#FCA5A5]/25 bg-[#FCA5A5]/10 px-3 py-2 text-xs leading-relaxed text-[#FCA5A5]"
+            >
+              {error}
+            </p>
           ) : (
-            <form onSubmit={submit} className="card mt-6 space-y-3 p-4">
-              {error && <p className="alert">{error}</p>}
-              <button
-                type="submit"
-                disabled={busy || !token}
-                className="btn btn-primary w-full"
-              >
-                {busy ? t("verify.verifying") : t("verify.confirm")}
-              </button>
-              <a
-                href="/login"
-                className="block text-center text-[11px] text-muted underline decoration-line underline-offset-4"
-              >
-                {t("auth.backToLogin")}
-              </a>
-            </form>
+            <p className="rounded-xl border border-[#30332F] bg-[#101110] px-3.5 py-3 text-xs leading-relaxed text-[#A0A59B]">
+              {lang === "id"
+                ? "Klik tombol di bawah untuk mengonfirmasi alamat email ini."
+                : "Click the button below to confirm this email address."}
+            </p>
           )}
-        </div>
-      </main>
 
-      <footer className="border-t border-line px-5 py-4 text-center text-[10.5px] text-muted">
-        {t("start.legal")} ·{" "}
-        <a href="/help" className="underline decoration-line underline-offset-4 transition hover:text-ink">
-          {t("account.help")}
-        </a>
-      </footer>
-    </div>
+          <button
+            type="submit"
+            disabled={busy || !token}
+            className={authPrimaryButtonClass}
+          >
+            <MailCheck className="h-4 w-4" />
+            {busy ? t("verify.verifying") : t("verify.confirm")}
+          </button>
+
+          <a
+            href="/login"
+            className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-[#A0A59B] underline decoration-[#30332F] underline-offset-4 transition hover:text-[#C3F36B]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {t("auth.backToLogin")}
+          </a>
+        </form>
+      )}
+    </AuthShell>
   );
 }

@@ -1,13 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeft, KeyRound, Lock } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
-import LanguageToggle from "./LanguageToggle";
-import ThemeToggle from "./ThemeToggle";
-import LogoMark from "./Logo";
+import {
+  AuthShell,
+  authInputClass,
+  authLabelClass,
+  authPrimaryButtonClass,
+  authSecondaryButtonClass,
+} from "./auth/AuthShell";
 
-export default function ResetPasswordForm({ token }: { token: string }) {
-  const { t } = useI18n();
+export default function ResetPasswordForm({
+  token,
+  fontClass,
+}: {
+  token: string;
+  fontClass?: string;
+}) {
+  const { t, lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -47,93 +58,99 @@ export default function ResetPasswordForm({ token }: { token: string }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-line">
-        <div className="mx-auto flex h-[56px] max-w-6xl items-center justify-between px-5">
-          <a href="/" className="flex items-center gap-2.5">
-            <LogoMark className="h-7 w-7 shrink-0 text-ink" />
-            <span className="text-[14.5px] font-semibold tracking-[-0.02em] text-ink">
-              fasttrack
+    <AuthShell
+      fontClass={fontClass}
+      eyebrow={lang === "id" ? "AKUN FASTTRACK" : "FASTTRACK ACCOUNT"}
+      title={done ? t("auth.resetDoneTitle") : t("auth.resetTitle")}
+      subtitle={done ? t("auth.resetDone") : t("auth.resetSub")}
+    >
+      {done ? (
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-[#C3F36B]/30 bg-[#C3F36B]/10 p-4">
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#C3F36B] text-[12px] font-bold text-[#151810]">
+              ✓
             </span>
-          </a>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
+            <p className="text-sm leading-relaxed text-[#F4F5F1]">{t("auth.resetDone")}</p>
           </div>
+          <a href="/login" className={authPrimaryButtonClass}>
+            <KeyRound className="h-4 w-4" />
+            {t("auth.backToLogin")}
+          </a>
         </div>
-      </header>
-
-      <main className="flex flex-1 items-center justify-center px-5 py-12">
-        <div className="w-full max-w-[400px]">
-          <p className="label">fasttrack account</p>
-          <h1 className="mt-2 text-[28px] font-semibold leading-[1.1] tracking-[-0.03em] text-ink">
-            {done ? t("auth.resetDoneTitle") : t("auth.resetTitle")}
-          </h1>
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            {done ? t("auth.resetDone") : t("auth.resetSub")}
-          </p>
-
-          {done ? (
-            <div className="card mt-6 space-y-3 p-4">
-              <a href="/login" className="btn btn-primary w-full justify-center">
-                {t("auth.backToLogin")}
-              </a>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block">
+            <span className={authLabelClass}>{t("auth.newPassword")}</span>
+            <div className="relative mt-1.5">
+              <Lock
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#777D73]"
+              />
+              <input
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                maxLength={200}
+                className={`${authInputClass} pl-10`}
+                disabled={!token}
+              />
             </div>
-          ) : (
-            <form onSubmit={submit} className="card mt-6 space-y-3 p-4">
-              <label className="block space-y-1.5">
-                <span className="label">{t("auth.newPassword")}</span>
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  maxLength={200}
-                  className="input"
-                  disabled={!token}
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="label">{t("auth.confirmPassword")}</span>
-                <input
-                  name="confirmation"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  maxLength={200}
-                  className="input"
-                  disabled={!token}
-                />
-              </label>
-              {error && <p className="alert">{error}</p>}
-              <button
-                type="submit"
-                disabled={busy || !token}
-                className="btn btn-primary w-full"
-              >
-                {busy ? "…" : t("auth.resetSubmit")}
-              </button>
-              {!token && (
-                <a
-                  href="/forgot-password"
-                  className="block text-center text-[11px] text-muted underline decoration-line underline-offset-4"
-                >
-                  {t("auth.requestNew")}
-                </a>
-              )}
-            </form>
-          )}
-        </div>
-      </main>
+          </label>
 
-      <footer className="border-t border-line px-5 py-4 text-center text-[10.5px] text-muted">
-        {t("start.legal")} ·{" "}
-        <a href="/help" className="underline decoration-line underline-offset-4 transition hover:text-ink">
-          {t("account.help")}
-        </a>
-      </footer>
-    </div>
+          <label className="block">
+            <span className={authLabelClass}>{t("auth.confirmPassword")}</span>
+            <div className="relative mt-1.5">
+              <Lock
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-[#777D73]"
+              />
+              <input
+                name="confirmation"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                maxLength={200}
+                className={`${authInputClass} pl-10`}
+                disabled={!token}
+              />
+            </div>
+          </label>
+
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl border border-[#FCA5A5]/25 bg-[#FCA5A5]/10 px-3 py-2 text-xs leading-relaxed text-[#FCA5A5]"
+            >
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={busy || !token}
+            className={authPrimaryButtonClass}
+          >
+            {busy ? "…" : t("auth.resetSubmit")}
+          </button>
+
+          {!token ? (
+            <a href="/forgot-password" className={authSecondaryButtonClass}>
+              {t("auth.requestNew")}
+            </a>
+          ) : (
+            <a
+              href="/login"
+              className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-[#A0A59B] underline decoration-[#30332F] underline-offset-4 transition hover:text-[#C3F36B]"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              {t("auth.backToLogin")}
+            </a>
+          )}
+        </form>
+      )}
+    </AuthShell>
   );
 }

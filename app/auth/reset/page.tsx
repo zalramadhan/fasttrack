@@ -1,4 +1,5 @@
 import ResetPasswordForm from "@/components/ResetPasswordForm";
+import { landingFontClass } from "../../fonts";
 
 export const dynamic = "force-dynamic";
 
@@ -8,5 +9,5 @@ export default async function ResetPasswordPage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token } = await searchParams;
-  return <ResetPasswordForm token={token ?? ""} />;
+  return <ResetPasswordForm token={token ?? ""} fontClass={landingFontClass} />;
 }
