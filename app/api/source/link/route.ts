@@ -2,14 +2,24 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/server/auth";
+import { consumeRateLimit } from "@/lib/server/db";
+import { LINK_IP_LIMIT, LINK_USER_LIMIT, LINK_WINDOW_MS, clientIp, tooManyRequests } from "@/lib/server/rate-limit";
 import { downloadVideo } from "@/lib/server/ytdlp";
+import {
+  deleteRemoteAsset,
+  persistAsset,
+  removeRemoteUsage,
+} from "@/lib/server/media-storage";
 import { downloadThreadsVideo, isThreadsUrl } from "@/lib/server/threads";
+import { assertSafeSourceUrl } from "@/lib/server/url-safety";
 import {
   UPLOADS_DIR,
   assetDir,
   cleanupOld,
   ensureDir,
   mimeForExt,
+  userUploadBytes,
+  userUploadQuota,
   writeJson,
   type AssetMeta,
 } from "@/lib/server/storage";
@@ -22,6 +32,13 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Silakan login dulu." }, { status: 401 });
   }
+
+  const retryAfter = Math.max(
+    await consumeRateLimit(`link:user:${user.id}`, LINK_USER_LIMIT, LINK_WINDOW_MS),
+    await consumeRateLimit(`link:ip:${clientIp(req)}`, LINK_IP_LIMIT, LINK_WINDOW_MS),
+  );
+  if (retryAfter) return tooManyRequests(retryAfter);
+
   let url = "";
   try {
     const body = (await req.json()) as { url?: string };
@@ -32,12 +49,20 @@ export async function POST(req: Request) {
 
   let parsed: URL;
   try {
-    parsed = new URL(url);
-  } catch {
-    return NextResponse.json({ error: "URL tidak valid." }, { status: 400 });
+    parsed = await assertSafeSourceUrl(url);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "URL tidak valid." },
+      { status: 400 },
+    );
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return NextResponse.json({ error: "Hanya URL http/https yang didukung." }, { status: 400 });
+
+  await cleanupOld(UPLOADS_DIR);
+  if ((await userUploadBytes(user.id)) >= userUploadQuota(user.plan)) {
+    return NextResponse.json(
+      { error: "Kuota media akunmu sudah penuh. Hapus project lama dulu." },
+      { status: 413 },
+    );
   }
 
   const id = crypto.randomUUID();
@@ -68,7 +93,14 @@ export async function POST(req: Request) {
       ext = result.ext;
     }
 
-    const stat = await fs.stat(file);
+    const stat = await fs.stat(/* turbopackIgnore: true */ file);
+    if ((await userUploadBytes(user.id)) + stat.size > userUploadQuota(user.plan)) {
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+      return NextResponse.json(
+        { error: "Kuota media akunmu tidak cukup untuk video ini." },
+        { status: 413 },
+      );
+    }
 
     const meta: AssetMeta = {
       id,
@@ -81,6 +113,19 @@ export async function POST(req: Request) {
       ownerId: user.id,
     };
     await writeJson(path.join(dir, "meta.json"), meta);
+    try {
+      await persistAsset(meta, file);
+    } catch (storageError) {
+      console.error("[source/link/storage]", storageError);
+      if (await deleteRemoteAsset(meta)) {
+        await removeRemoteUsage(meta).catch(() => {});
+      }
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+      return NextResponse.json(
+        { error: "Gagal menyimpan video ke penyimpanan permanen." },
+        { status: 503 },
+      );
+    }
     void cleanupOld(UPLOADS_DIR);
 
     return NextResponse.json({
@@ -93,7 +138,17 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
-    const message = error instanceof Error ? error.message : "Gagal mengambil video dari link.";
-    return NextResponse.json({ error: message }, { status: 502 });
+    const detail = error instanceof Error ? error.message : "";
+    console.error("[source/link]", detail || error);
+    // yt-dlp errors can contain internal paths and request details. Only our
+    // own user-facing Threads messages are safe to return.
+    const safe =
+      detail.startsWith("Video Threads") ||
+      detail.startsWith("File video Threads") ||
+      detail.startsWith("Gagal mengunduh video Threads") ||
+      detail.startsWith("Butuh Chromium")
+        ? detail
+        : "Gagal mengambil video dari link.";
+    return NextResponse.json({ error: safe }, { status: 502 });
   }
 }

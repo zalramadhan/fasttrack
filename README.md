@@ -18,15 +18,19 @@ npm run dev          # http://localhost:3000
 
 Kebutuhan sistem:
 
-- Node.js 22.5+ (memakai `node:sqlite` bawaan)
+- Node.js 22.5+
 - `ffmpeg` + `ffprobe` dengan encoder `libx264` dan `aac` (untuk export MP4)
-- `yt-dlp` untuk import dari link (YouTube, TikTok, Instagram, X, dll.)
+- `yt-dlp` untuk import dari link (YouTube, TikTok, Instagram, X)
 - Chromium untuk import Threads (memakai browser headless)
 
 ```bash
+npm run setup:media   # ffmpeg, yt-dlp, dan Chromium (idempoten)
+# atau satu per satu:
 npm run setup:ytdlp   # venv di .tools/ytdlp-venv
 npm run setup:browser # install Chromium untuk Playwright
 ```
+
+Cek kesiapan server lewat `GET /api/health`. Endpoint ini memeriksa Supabase, bucket media, ffmpeg, ffprobe, yt-dlp, dan Chromium; status `503` berarti ada komponen yang belum siap.
 
 ## Akun & lifetime
 
@@ -36,26 +40,47 @@ Setelah daftar, user langsung masuk editor dan mendapat email verifikasi. Editin
 
 Pembayaran dilakukan manual via WhatsApp. User menekan **Upgrade lifetime**, mendapat kode order `FT-XXXXXX`, lalu chat admin dengan kode itu. Admin membuka `/admin`, menekan **Activate lifetime** setelah pembayaran masuk. Tidak ada payment gateway dan tidak ada penagihan otomatis.
 
-Admin ditentukan lewat `ADMIN_EMAIL` (boleh beberapa email dipisah koma); email tersebut otomatis mendapat role admin saat daftar. Isi juga `WHATSAPP_NUMBER` (format internasional tanpa `+`, mis. `62812...`) dan `LIFETIME_PRICE` (rupiah, default `49000`).
+Registrasi publik tidak pernah memberi role admin. Promosikan akun yang sudah terdaftar dan terverifikasi dengan `npm run promote:admin -- <email>` (atau isi `ADMIN_EMAIL` lalu jalankan tanpa argumen). Setelah itu jalankan `supabase/migrations/0003_harden_auth.sql` agar trigger auth tidak lagi mempercayai metadata dari client. Isi juga `WHATSAPP_NUMBER` (format internasional tanpa `+`, mis. `62812...`) dan `LIFETIME_PRICE` (rupiah, default `49000`).
 
 ```bash
 cp .env.example .env.local
 # edit .env.local, lalu restart server
 ```
 
-Data akun, sesi, order, project, pengaturan, dan audit admin disimpan di SQLite (`data/app.db`). `DATABASE_PATH` bisa dipakai untuk memindahkan file database. Set `COOKIE_SECURE=1` jika app diakses lewat HTTPS.
+Data akun, sesi, order, project, pengaturan, dan audit admin disimpan di Supabase Postgres. Auth email/password dan Google memakai Supabase Auth. Set `COOKIE_SECURE=1` jika app diakses lewat HTTPS.
 
 ### Email verifikasi
 
-Isi `RESEND_API_KEY`, `EMAIL_FROM` (domain pengirim yang sudah diverifikasi di Resend), dan `APP_URL` agar link verifikasi menunjuk ke alamat publik. Tanpa konfigurasi ini, akun tetap dibuat tetapi email tidak terkirim dan export tetap terkunci sampai admin memverifikasi manual dari dashboard.
+Isi `RESEND_API_KEY`, `EMAIL_FROM` (domain pengirim yang sudah diverifikasi di Resend), `AUTH_TOKEN_SECRET` (buat dengan `openssl rand -base64 48`), dan `APP_URL` agar link verifikasi/reset menunjuk ke alamat publik. Tanpa konfigurasi ini, akun tetap dibuat tetapi email tidak terkirim dan export tetap terkunci sampai admin memverifikasi manual dari dashboard.
 
-### Backup otomatis
+Lupa password memakai link bertanda tangan yang berlaku 1 jam dan hanya bisa dipakai sekali. Link verifikasi berlaku 24 jam.
 
-Server membuat snapshot SQLite dengan `VACUUM INTO` ±15 detik setelah boot, lalu setiap 24 jam. Snapshot konsisten meski database sedang dipakai, dan disimpan di `data/backups/` dengan retensi 14 file terakhir. Lokasi, interval, dan retensi bisa diubah lewat `BACKUP_DIR`, `BACKUP_INTERVAL_HOURS`, dan `BACKUP_RETENTION`.
+### Backup & penyimpanan media
+
+Database ada di Supabase. Aktifkan backup/PITR dari dashboard Supabase.
+
+Video/audio disimpan di bucket privat Supabase Storage `media` (bisa diganti lewat `SUPABASE_STORAGE_BUCKET`). Disk server hanya cache: kalau `.tmp/uploads` hilang, file dan metadata dipulihkan otomatis dari bucket saat diakses. Kuota media per user juga disimpan di bucket, jadi tidak reset saat server restart.
+
+Untuk memindahkan media lama yang masih lokal ke bucket, jalankan sekali:
+
+```bash
+npm run media:migrate
+```
+
+Skrip ini aman dijalankan berulang; media yang sudah ada tidak dihitung dua kali. Buat bucket privat `media` lebih dulu jika belum ada (skrip juga mencoba membuatnya).
+
+### Produksi
+
+```bash
+npm run build
+npm run start
+```
+
+Isi `APP_URL` dengan URL HTTPS publik, set `COOKIE_SECURE=1`, dan tambahkan URL callback Google OAuth `https://domain-kamu/auth/callback` di Google Cloud Console. Pastikan domain pengirim Resend sudah terverifikasi sebelum memakai `EMAIL_FROM`.
 
 ## Simpan project
 
-Di editor, tombol **Simpan project** menyimpan klip, trim, transisi, framing, teks, audio, rasio, dan pengaturan export ke SQLite. Setiap akun punya satu slot project; menyimpan lagi akan menimpa project sebelumnya. Project tersimpan muncul sebagai **Lanjutkan project tersimpan** di layar awal.
+Di editor, tombol **Simpan project** menyimpan klip, trim, transisi, framing, teks, audio, rasio, dan pengaturan export ke Supabase. Setiap akun punya satu slot project; menyimpan lagi akan menimpa project sebelumnya. Project tersimpan muncul sebagai **Lanjutkan project tersimpan** di layar awal.
 
 Media yang dipakai project akan dipin sehingga tidak ikut cleanup `.tmp` otomatis. Media yang tidak pernah disimpan tetap dibersihkan setelah beberapa jam.
 
@@ -93,7 +118,7 @@ Preview sticky: di layar kecil preview tetap terlihat saat panel pengaturan di-s
 - **Bahasa Indonesia / English** dengan switch EN/ID di header; default English, pilihan tersimpan di browser. Semua teks UI dan pesan error ikut berganti bahasa.
 - **Tema terang/gelap** dengan toggle di header, tersimpan di browser.
 - **Export**: H.264 + AAC 48 kHz, faststart, 30 fps. Batas resolusi/bitrate dan watermark diterapkan di server, bukan hanya di UI.
-- **Akun**: register/login dengan sesi cookie HttpOnly, password di-hash scrypt, verifikasi email, role admin, order WhatsApp, riwayat order, rate limit, panduan, simpan project, dan aktivasi lifetime manual.
+- **Akun**: register/login lewat Supabase Auth dengan sesi cookie HttpOnly, login Google, verifikasi email, reset password, role admin, order WhatsApp, riwayat order, rate limit, panduan, simpan project, dan aktivasi lifetime manual.
 - **Dashboard admin** di `/admin`: statistik user/order/pendapatan, pencarian dan filter user, aktivasi lifetime, verifikasi email manual, suspend/reactivate, pembatalan order pending, status backup, pemakaian storage, audit log, dan pengaturan link Shopee.
 
 ## Cara kerja export
@@ -102,7 +127,7 @@ Preview sticky: di layar kecil preview tetap terlihat saat panel pengaturan di-s
 2. Server menulis frame ke `frames.mjpeg`, lalu menjalankan ffmpeg sekali: `libx264` pada bitrate target, sementara audio tiap klip dipotong sesuai offset timeline (dengan fade in/out di overlap) lalu dimix dengan musik (`amix`).
 3. ffmpeg men-scale frame ke resolusi target dan menambahkan watermark `fasttrack` untuk akun free. Progres encoding dipantau dari `-progress`, hasil MP4 bisa diunduh.
 
-File sementara disimpan di `.tmp/` dan dibersihkan otomatis setelah beberapa jam.
+File sementara disimpan di `.tmp/` dan dibersihkan otomatis setelah beberapa jam. Media yang dipakai project dipin; salinan permanennya ada di Supabase Storage.
 
 ## Struktur
 
@@ -110,7 +135,7 @@ File sementara disimpan di `.tmp/` dan dibersihkan otomatis setelah beberapa jam
 app/            layar awal + editor (satu route), API routes (source, media, export)
 components/     panel UI (sumber, trim, transisi, preview, teks, audio, export)
 lib/            render canvas, transisi (shader + compositor), font Google, tipe, helper client/server
-lib/server/     SQLite/auth, storage sementara, ffmpeg, yt-dlp, Threads, job export
+lib/server/     auth, storage sementara, ffmpeg, yt-dlp, Threads, keamanan URL, job export
 ```
 
 ## Batasan

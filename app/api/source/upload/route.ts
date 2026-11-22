@@ -1,10 +1,23 @@
-import { createWriteStream } from "node:fs";
+import { createWriteStream, promises as fs } from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/server/auth";
+import { consumeRateLimit } from "@/lib/server/db";
 import { startPreview } from "@/lib/server/preview";
+import {
+  deleteRemoteAsset,
+  persistAsset,
+  removeRemoteUsage,
+} from "@/lib/server/media-storage";
+import {
+  UPLOAD_IP_LIMIT,
+  UPLOAD_USER_LIMIT,
+  UPLOAD_WINDOW_MS,
+  clientIp,
+  tooManyRequests,
+} from "@/lib/server/rate-limit";
 import {
   AUDIO_TYPES,
   UPLOADS_DIR,
@@ -12,6 +25,8 @@ import {
   assetDir,
   cleanupOld,
   ensureDir,
+  userUploadBytes,
+  userUploadQuota,
   writeJson,
   type AssetMeta,
 } from "@/lib/server/storage";
@@ -27,6 +42,13 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Silakan login dulu." }, { status: 401 });
   }
+
+  const retryAfter = Math.max(
+    await consumeRateLimit(`upload:user:${user.id}`, UPLOAD_USER_LIMIT, UPLOAD_WINDOW_MS),
+    await consumeRateLimit(`upload:ip:${clientIp(req)}`, UPLOAD_IP_LIMIT, UPLOAD_WINDOW_MS),
+  );
+  if (retryAfter) return tooManyRequests(retryAfter);
+
   try {
     const form = await req.formData();
     const file = form.get("file");
@@ -67,6 +89,15 @@ export async function POST(req: Request) {
       );
     }
 
+    await cleanupOld(UPLOADS_DIR);
+    const used = await userUploadBytes(user.id);
+    if (used + file.size > userUploadQuota(user.plan)) {
+      return NextResponse.json(
+        { error: "Kuota media akunmu tidak cukup. Hapus project lama dulu." },
+        { status: 413 },
+      );
+    }
+
     const id = crypto.randomUUID();
     const dir = assetDir(id);
     await ensureDir(dir);
@@ -86,6 +117,19 @@ export async function POST(req: Request) {
       ownerId: user.id,
     };
     await writeJson(path.join(dir, "meta.json"), meta);
+    try {
+      await persistAsset(meta, target);
+    } catch (error) {
+      console.error("[upload/storage]", error);
+      if (await deleteRemoteAsset(meta)) {
+        await removeRemoteUsage(meta).catch(() => {});
+      }
+      await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+      return NextResponse.json(
+        { error: "Gagal menyimpan media ke penyimpanan permanen." },
+        { status: 503 },
+      );
+    }
 
     void cleanupOld(UPLOADS_DIR);
     if (kind === "video" && file.size > 20 * 1024 * 1024) {

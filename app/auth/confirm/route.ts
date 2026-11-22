@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { appBaseUrl } from "@/lib/server/verification";
+import { markEmailVerified } from "@/lib/server/db";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -16,13 +17,15 @@ export async function GET(req: Request) {
   let ok = false;
 
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
     ok = !error;
     if (error) console.error("[auth/confirm]", error.message);
+    if (ok && data.user) await markEmailVerified(data.user.id);
   } else if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     ok = !error;
     if (error) console.error("[auth/confirm]", error.message);
+    if (ok && data.user) await markEmailVerified(data.user.id);
   }
 
   redirect(new URL(ok ? "/" : "/login", appBaseUrl(req)).toString());

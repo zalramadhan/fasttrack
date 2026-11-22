@@ -1,3 +1,9 @@
+import {
+  Bricolage_Grotesque,
+  DM_Sans,
+  JetBrains_Mono,
+  Playfair_Display,
+} from "next/font/google";
 import Home from "@/components/Home";
 import { getCurrentUser } from "@/lib/server/auth";
 import { LIFETIME_PRICE } from "@/lib/server/config";
@@ -5,6 +11,33 @@ import { getProject, getSetting } from "@/lib/server/db";
 import type { SavedProject } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+  display: "swap",
+});
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+const landingFontClass = [
+  bricolage.variable,
+  dmSans.variable,
+  jetbrainsMono.variable,
+  playfair.variable,
+].join(" ");
 
 export default async function Page() {
   const user = await getCurrentUser();
@@ -40,6 +73,7 @@ export default async function Page() {
       }
       shopeeUrl={(await getSetting("shopee_url")) ?? ""}
       lifetimePrice={LIFETIME_PRICE}
+      landingFontClass={landingFontClass}
     />
   );
 }

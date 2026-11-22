@@ -1,14 +1,6 @@
-import { cookies } from "next/headers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { PublicUser, UserRole } from "@/lib/types";
-
-export function adminEmails() {
-  return (process.env.ADMIN_EMAIL || "")
-    .split(",")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 function toPublicUser(row: Record<string, unknown>): PublicUser {
   return {
@@ -39,8 +31,21 @@ export async function getCurrentUser(): Promise<PublicUser | null> {
       .maybeSingle();
     if (!profile) return null;
     if (profile.status !== "active") return null;
-    // Sync email verification from auth.
-    if (authUser.email_confirmed_at && !profile.email_verified_at) {
+
+    // Role in profiles is only trusted when the admin-only app_metadata agrees.
+    // user_metadata is client-controlled and must never grant admin.
+    const isAdmin =
+      profile.role === "admin" && authUser.app_metadata?.role === "admin";
+    if (profile.role === "admin" && !isAdmin) {
+      await admin.from("profiles").update({ role: "user" }).eq("id", authUser.id);
+      profile.role = "user";
+    }
+
+    // OAuth providers verify the email themselves. Email/password accounts use
+    // the signed verification link so Supabase's disabled confirmation setting
+    // cannot silently mark the address as owned.
+    const provider = String(authUser.app_metadata?.provider ?? "");
+    if (provider !== "email" && authUser.email_confirmed_at && !profile.email_verified_at) {
       await admin
         .from("profiles")
         .update({ email_verified_at: Date.now() })

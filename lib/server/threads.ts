@@ -5,6 +5,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { chromium } from "playwright-core";
+import { assertSafeFetchUrl } from "./url-safety";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -121,9 +122,10 @@ export async function downloadThreadsVideo(url: string, destDir: string) {
     );
   }
 
+  const safeVideoUrl = (await assertSafeFetchUrl(videoUrl)).toString();
   await fs.mkdir(destDir, { recursive: true });
   const file = path.join(destDir, "file.mp4");
-  const response = await fetch(videoUrl, {
+  const response = await fetch(safeVideoUrl, {
     headers: {
       "user-agent": UA,
       referer: "https://www.threads.com/",

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { consumeRateLimit, findUserByEmail } from "@/lib/server/db";
-import { adminEmails } from "@/lib/server/auth";
 import { emailConfigured } from "@/lib/server/email";
 import {
   REGISTER_IP_LIMIT,
@@ -10,7 +9,7 @@ import {
   clientIp,
   tooManyRequests,
 } from "@/lib/server/rate-limit";
-import { appBaseUrl } from "@/lib/server/verification";
+import { appBaseUrl, sendUserVerification } from "@/lib/server/verification";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,33 +42,41 @@ export async function POST(req: Request) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const role = adminEmails().includes(email) ? "admin" : "user";
-    const { data, error } = await supabase.auth.signUp({
+    const admin = createAdminClient();
+    // Never grant admin from public registration. Promote an existing,
+    // verified account with `npm run promote:admin -- <email>` instead.
+    const role = "user" as const;
+
+    // Use the admin API so Supabase does not send its own confirmation email.
+    // The account is created confirmed, but our profile stays unverified until
+    // the signed Resend link is opened.
+    const { data: created, error } = await admin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { name, whatsapp, role },
-        emailRedirectTo: `${appBaseUrl(req)}/auth/confirm`,
-      },
+      email_confirm: true,
+      user_metadata: { name, whatsapp, role },
     });
-    if (error || !data.user) {
+    if (error || !created.user) {
+      const already =
+        error?.code === "email_exists" || /already/i.test(error?.message ?? "");
       console.error("[auth/register]", error?.message);
-      return NextResponse.json({ error: "Gagal membuat akun." }, { status: 500 });
+      return NextResponse.json(
+        { error: already ? "Email sudah terdaftar." : "Gagal membuat akun." },
+        { status: already ? 409 : 500 },
+      );
     }
 
     // Ensure profile exists (trigger should create it).
-    const admin = createAdminClient();
-    // Wait a moment? Trigger synchronous. Fetch.
     let profile = null;
     for (let i = 0; i < 5; i++) {
-      const { data: p } = await admin.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+      const { data: p } = await admin.from("profiles").select("*").eq("id", created.user.id).maybeSingle();
       if (p) { profile = p; break; }
       await new Promise((r) => setTimeout(r, 100));
     }
     if (!profile) {
       // Insert manually as fallback.
       await admin.from("profiles").insert({
-        id: data.user.id,
+        id: created.user.id,
         email,
         name,
         whatsapp,
@@ -79,8 +86,39 @@ export async function POST(req: Request) {
         created_at: Date.now(),
         email_verified_at: null,
       });
-      const { data: p2 } = await admin.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
-      profile = p2;
+    }
+
+    const { data: updatedProfile, error: profileError } = await admin
+      .from("profiles")
+      .update({ name, whatsapp, role, email_verified_at: null })
+      .eq("id", created.user.id)
+      .select("*")
+      .single();
+    if (profileError || !updatedProfile) {
+      console.error("[auth/register] profile", profileError?.message);
+      await admin.auth.admin.deleteUser(created.user.id).catch(() => {});
+      return NextResponse.json({ error: "Gagal membuat profil." }, { status: 500 });
+    }
+    profile = updatedProfile;
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) {
+      console.error("[auth/register] sign-in", signInError.message);
+    }
+
+    let verificationSent = false;
+    const sent = await sendUserVerification({
+      id: created.user.id,
+      email,
+      name,
+      baseUrl: appBaseUrl(req),
+    });
+    verificationSent = sent.ok;
+    if (!sent.ok) {
+      console.error("[auth/register] verification email", sent.error);
     }
 
     return NextResponse.json(
@@ -97,7 +135,7 @@ export async function POST(req: Request) {
           activatedAt: profile.activated_at,
           emailVerifiedAt: profile.email_verified_at,
         },
-        verificationSent: emailConfigured(),
+        verificationSent,
         emailConfigured: emailConfigured(),
       },
       { status: 201 },

@@ -7,12 +7,17 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "promote:admin": "node --env-file=.env.local scripts/promote-admin.mjs",
     "setup:ytdlp": "python3 -m venv .tools/ytdlp-venv && .tools/ytdlp-venv/bin/pip install -U yt-dlp",
-    "setup:browser": "npx playwright-core install chromium"
+    "setup:browser": "npx playwright-core install chromium",
+    "setup:media": "bash scripts/setup-media.sh",
+    "media:migrate": "node --env-file-if-exists=.env.local scripts/migrate-media.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
+    "lucide-react": "^1.77.0",
+    "motion": "^14.14.0",
     "next": "16.4.6",
     "playwright-core": "1.65.1",
     "react": "19.3.1",

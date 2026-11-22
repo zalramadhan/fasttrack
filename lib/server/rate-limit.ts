@@ -9,6 +9,18 @@ export const ORDER_WINDOW_MS = 60 * 60 * 1000;
 export const ORDER_USER_LIMIT = 10;
 export const VERIFY_WINDOW_MS = 60 * 60 * 1000;
 export const VERIFY_USER_LIMIT = 5;
+export const VERIFY_IP_LIMIT = 20;
+export const UPLOAD_WINDOW_MS = 60 * 60 * 1000;
+export const UPLOAD_USER_LIMIT = 20;
+export const UPLOAD_IP_LIMIT = 40;
+export const LINK_WINDOW_MS = 60 * 60 * 1000;
+export const LINK_USER_LIMIT = 20;
+export const LINK_IP_LIMIT = 40;
+export const FORGOT_WINDOW_MS = 60 * 60 * 1000;
+export const FORGOT_IP_LIMIT = 10;
+export const FORGOT_EMAIL_LIMIT = 5;
+export const RESET_WINDOW_MS = 60 * 60 * 1000;
+export const RESET_IP_LIMIT = 10;
 
 export function clientIp(req: Request) {
   const forwarded = req.headers.get("x-forwarded-for");

@@ -123,6 +123,17 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               )}
             </label>
 
+            {isLogin && (
+              <div className="flex justify-end">
+                <a
+                  href="/forgot-password"
+                  className="text-[10.5px] text-muted underline decoration-line underline-offset-4"
+                >
+                  {t("auth.forgot")}
+                </a>
+              </div>
+            )}
+
             {error && <p className="alert">{error}</p>}
 
             <button

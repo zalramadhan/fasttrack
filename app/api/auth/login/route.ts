@@ -47,8 +47,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Akun ini sedang dinonaktifkan." }, { status: 403 });
     }
 
-    // sync email verification
-    if (data.user.email_confirmed_at && !profile.email_verified_at) {
+    // OAuth providers are verified upstream; email/password accounts use the
+    // signed link sent by /api/auth/verify/resend.
+    const provider = String(data.user.app_metadata?.provider ?? "");
+    if (provider !== "email" && data.user.email_confirmed_at && !profile.email_verified_at) {
       await admin.from("profiles").update({ email_verified_at: Date.now() }).eq("id", data.user.id);
       profile.email_verified_at = Date.now();
     }

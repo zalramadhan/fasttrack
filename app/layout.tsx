@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { I18nProvider } from "@/lib/i18n";
 import "./globals.css";
+import "./landing.css";
 
 export const metadata: Metadata = {
   title: "fasttrack — video card editor",

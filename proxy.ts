@@ -1,6 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseConfigured } from "@/lib/supabase/admin";
 import { refreshSession } from "@/lib/supabase/proxy";
+import {
+  applySecurityHeaders,
+  isSameOriginRequest,
+  isUnsafeMethod,
+} from "@/lib/server/request-guard";
+
+function finalize(response: NextResponse) {
+  applySecurityHeaders(response.headers);
+  return response;
+}
 
 function constantTimeEqual(a: string, b: string) {
   const left = new TextEncoder().encode(a);
@@ -23,6 +33,12 @@ function unauthorized() {
 }
 
 export async function proxy(request: NextRequest) {
+  if (isUnsafeMethod(request.method) && !isSameOriginRequest(request)) {
+    return finalize(
+      NextResponse.json({ error: "Permintaan lintas situs ditolak." }, { status: 403 }),
+    );
+  }
+
   const username = process.env.FASTTRACK_USER || "fasttrack";
   const password = process.env.FASTTRACK_PASSWORD || "";
 
@@ -31,7 +47,7 @@ export async function proxy(request: NextRequest) {
     response = await refreshSession(request);
   }
 
-  if (!password) return response;
+  if (!password) return finalize(response);
 
   const header = request.headers.get("authorization");
   if (header?.startsWith("Basic ")) {
@@ -42,7 +58,7 @@ export async function proxy(request: NextRequest) {
         const user = decoded.slice(0, separator);
         const entered = decoded.slice(separator + 1);
         if (constantTimeEqual(user, username) && constantTimeEqual(entered, password)) {
-          return response;
+          return finalize(response);
         }
       }
     } catch {
@@ -50,7 +66,7 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  return unauthorized();
+  return finalize(unauthorized());
 }
 
 export const config = {

@@ -1,0 +1,186 @@
+@theme {
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-serif-preview: var(--font-playfair), Georgia, serif;
+}
+
+.landing-page {
+  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  background-color: #101110;
+  color: #f4f5f1;
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page .font-display {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+}
+
+.landing-page .font-sans {
+  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.landing-page .font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.landing-page .font-mono {
+  font-family: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+}
+
+.landing-page :focus-visible {
+  outline: 2px solid #c3f36b;
+  outline-offset: 2px;
+}
+
+html:has(.landing-page) {
+  scroll-padding-top: 88px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html.has-custom-cursor,
+  html.has-custom-cursor body,
+  html.has-custom-cursor a,
+  html.has-custom-cursor button,
+  html.has-custom-cursor input,
+  html.has-custom-cursor select,
+  html.has-custom-cursor textarea,
+  html.has-custom-cursor [role="button"] {
+    cursor: none !important;
+  }
+}
+
+.studio-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+.hero-grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+@keyframes studioLightDriftA {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translate3d(-48px, 34px, 0) scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes studioLightDriftB {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(52px, -28px, 0) scale(1.12);
+    opacity: 0.9;
+  }
+}
+
+@keyframes heroScanSweep {
+  0% {
+    transform: translate3d(-100%, 0, 0);
+    opacity: 0;
+  }
+  15%, 85% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(200%, 0, 0);
+    opacity: 0;
+  }
+}
+
+.animate-studio-light-a {
+  animation: studioLightDriftA 16s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-studio-light-b {
+  animation: studioLightDriftB 21s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-hero-scan {
+  animation: heroScanSweep 9s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee {
+  animation: marqueeScroll 28s linear infinite;
+  will-change: transform;
+}
+
+.marquee-wrap:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+@keyframes cardClipFade {
+  from {
+    opacity: 0.35;
+    transform: scale(1.03);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cardClipSlide {
+  from {
+    opacity: 0.4;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cardClipZoom {
+  from {
+    opacity: 0.4;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-clip-fade {
+  animation: cardClipFade 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-clip-slide {
+  animation: cardClipSlide 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-clip-zoom {
+  animation: cardClipZoom 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
