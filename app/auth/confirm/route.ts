@@ -20,13 +20,10 @@ export async function GET(req: Request) {
     ok = !error;
     if (error) console.error("[auth/confirm]", error.message);
   } else if (code) {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    ok = !error && !!data?.session;
-    console.log("[auth/confirm] code exchange ok=", ok, "user=", data?.user?.email, "err=", error?.message);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    ok = !error;
     if (error) console.error("[auth/confirm]", error.message);
   }
 
-  const target = new URL(ok ? "/" : "/login", appBaseUrl(req));
-  console.log("[auth/confirm] redirect ->", target.toString());
-  redirect(target.toString());
+  redirect(new URL(ok ? "/" : "/login", appBaseUrl(req)).toString());
 }

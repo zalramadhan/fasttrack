@@ -52,18 +52,63 @@ export async function downloadThreadsVideo(url: string, destDir: string) {
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45_000 });
 
-    const deadline = Date.now() + 20_000;
+    // Share links redirect client-side to the canonical post URL. Resolve it
+    // first so the video is taken from that post, not from feed recommendations.
+    await page
+      .waitForFunction(
+        () => {
+          const canonical = document
+            .querySelector('link[rel="canonical"]')
+            ?.getAttribute("href");
+          const href = canonical || location.href;
+          return /\/@[^/]+\/post\/[^/?#]+/.test(href);
+        },
+        { timeout: 20_000 },
+      )
+      .catch(() => {});
+
+    const canonical = await page
+      .evaluate(() => {
+        const link = document
+          .querySelector('link[rel="canonical"]')
+          ?.getAttribute("href");
+        return link && /\/@[^/]+\/post\/[^/?#]+/.test(link) ? link : location.href;
+      })
+      .catch(() => "");
+    const postPath = canonical.match(/\/@[^/]+\/post\/[^/?#]+/)?.[0] ?? null;
+
+    const deadline = Date.now() + 25_000;
     while (Date.now() < deadline && !videoUrl) {
       const found = await page
-        .evaluate(() => {
-          const videos = [...document.querySelectorAll("video")];
-          const playing = videos.find((video) => (video.currentSrc || video.src).startsWith("http"));
-          if (playing) return playing.currentSrc || playing.src;
+        .evaluate((path) => {
+          if (!path) return "";
+          const links = [...document.querySelectorAll("a[href]")].filter((anchor) => {
+            const href = anchor.getAttribute("href") ?? "";
+            return href === path || href.startsWith(`${path}?`);
+          });
+          // The timestamp link is an exact match; the breadcrumb often carries
+          // a tracking query and sits in a container with feed videos.
+          links.sort((a, b) => {
+            const ah = a.getAttribute("href") ?? "";
+            const bh = b.getAttribute("href") ?? "";
+            return Number(bh === path) - Number(ah === path);
+          });
+
+          for (const link of links) {
+            let el: Element | null = link;
+            while (el && el !== document.body) {
+              const src = [...el.querySelectorAll("video")]
+                .map((video) => video.currentSrc || video.src)
+                .find((value) => value.startsWith("http"));
+              if (src) return src;
+              el = el.parentElement;
+            }
+          }
           return "";
-        })
+        }, postPath)
         .catch(() => "");
       if (found) videoUrl = found;
-      else if (networkVideos.length) videoUrl = networkVideos[networkVideos.length - 1];
+      else if (!postPath && networkVideos.length) videoUrl = networkVideos[0];
       else await new Promise((resolve) => setTimeout(resolve, 700));
     }
   } finally {
