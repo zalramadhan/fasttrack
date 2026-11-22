@@ -51,7 +51,7 @@ const SUPPORTED_PLATFORMS = [
   { name: 'YouTube', match: /(youtube\.com|youtu\.be)/i },
   { name: 'TikTok', match: /tiktok\.com/i },
   { name: 'Instagram', match: /instagram\.com/i },
-  { name: 'Threads', match: /threads\.net/i },
+  { name: 'Threads', match: /threads\.(?:net|com)/i },
   { name: 'X', match: /(twitter\.com|x\.com)/i },
 ];
 
