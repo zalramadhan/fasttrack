@@ -13,6 +13,7 @@ import { FaqSection } from "./FaqSection";
 import { FinalCtaSection } from "./FinalCtaSection";
 import { Footer } from "./Footer";
 import { CustomCursor } from "./CustomCursor";
+import { AuthModal, type AuthMode } from "./AuthModal";
 
 export default function LandingPage({
   lifetimePrice,
@@ -23,6 +24,7 @@ export default function LandingPage({
 }) {
   const [locale, setLocale] = useState<Locale>("en");
   const [loadedMedia, setLoadedMedia] = useState<LoadedMedia | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode | null>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("fasttrack-lang");
@@ -35,29 +37,37 @@ export default function LandingPage({
     document.documentElement.lang = next;
   }
 
-  async function start() {
+  async function rememberMedia() {
     const media = loadedMedia;
-    if (media) {
-      try {
-        if (media.type === "file" && media.file) {
-          await savePendingSource({
-            kind: "file",
-            blob: media.file,
-            name: media.label,
-            createdAt: Date.now(),
-          });
-        } else if (media.type === "url" && media.url) {
-          await savePendingSource({
-            kind: "link",
-            url: media.url,
-            createdAt: Date.now(),
-          });
-        }
-      } catch {
-        // The register page can still open; the user can pick the file again.
+    if (!media) return;
+    try {
+      if (media.type === "file" && media.file) {
+        await savePendingSource({
+          kind: "file",
+          blob: media.file,
+          name: media.label,
+          createdAt: Date.now(),
+        });
+      } else if (media.type === "url" && media.url) {
+        await savePendingSource({
+          kind: "link",
+          url: media.url,
+          createdAt: Date.now(),
+        });
       }
+    } catch {
+      // Auth can still open; the user can pick the file again afterwards.
     }
-    window.location.assign("/register");
+  }
+
+  async function start() {
+    await rememberMedia();
+    setAuthMode("signup");
+  }
+
+  async function login() {
+    await rememberMedia();
+    setAuthMode("login");
   }
 
   return (
@@ -67,7 +77,11 @@ export default function LandingPage({
         id="top"
         className={`landing-page min-h-screen bg-[#101110] text-[#F4F5F1] ${fontClass ?? ""}`}
       >
-        <Navbar locale={locale} onStartClick={() => void start()} />
+        <Navbar
+          locale={locale}
+          onLoginClick={() => void login()}
+          onStartClick={() => void start()}
+        />
 
         <main>
           <HeroSection
@@ -99,6 +113,13 @@ export default function LandingPage({
           onOpenHelp={() => window.location.assign("/help")}
         />
 
+        <AuthModal
+          mode={authMode}
+          locale={locale}
+          mediaLabel={loadedMedia?.label}
+          onClose={() => setAuthMode(null)}
+          onSwitch={setAuthMode}
+        />
       </div>
     </MotionConfig>
   );

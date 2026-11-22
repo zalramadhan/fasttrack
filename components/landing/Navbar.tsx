@@ -6,10 +6,11 @@ import { COPY, Locale } from './content';
 
 interface NavbarProps {
   locale: Locale;
+  onLoginClick: () => void;
   onStartClick: () => void;
 }
 
-export function Navbar({ locale, onStartClick }: NavbarProps) {
+export function Navbar({ locale, onLoginClick, onStartClick }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const t = COPY[locale].nav;
 
@@ -46,12 +47,13 @@ export function Navbar({ locale, onStartClick }: NavbarProps) {
 
         {/* Zone 3: 1 primary CTA button */}
         <div className="flex items-center gap-3 shrink-0">
-          <a
-            href="/login"
-            className="hidden text-[13px] font-medium text-[#D2D6CD] transition-colors hover:text-white sm:inline-flex"
+          <button
+            type="button"
+            onClick={onLoginClick}
+            className="hidden text-[13px] font-medium text-[#D2D6CD] transition-colors hover:text-white sm:inline-flex cursor-pointer"
           >
             {locale === 'en' ? 'Log in' : 'Masuk'}
-          </a>
+          </button>
           <a
             href="/register"
             onClick={(event) => {
@@ -89,10 +91,19 @@ export function Navbar({ locale, onStartClick }: NavbarProps) {
                 {link.label}
               </a>
             ))}
-            <a
-              href="/register"
-              onClick={(event) => {
-                event.preventDefault();
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                onLoginClick();
+              }}
+              className="py-2.5 text-left whitespace-nowrap hover:text-white cursor-pointer"
+            >
+              {locale === 'en' ? 'Log in' : 'Masuk'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setMobileOpen(false);
                 onStartClick();
               }}
@@ -100,7 +111,7 @@ export function Navbar({ locale, onStartClick }: NavbarProps) {
             >
               <span>{t.cta}</span>
               <ArrowUpRight className="h-4 w-4" />
-            </a>
+            </button>
           </nav>
         </div>
       )}
