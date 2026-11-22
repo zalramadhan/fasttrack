@@ -152,6 +152,8 @@ export const COPY = {
       primaryCta: 'Start editing for free',
       secondaryCta: 'See how it works',
       stageCaption: 'Interactive workspace preview — click tools, timeline clips, or load your own video.',
+      threadsHint:
+        'Threads: paste a post that contains a video. Text-only and image posts cannot be imported.',
     },
     trustStrip: [
       { label: 'Made for creators', bold: true },
@@ -310,6 +312,8 @@ export const COPY = {
       primaryCta: 'Mulai edit gratis',
       secondaryCta: 'Lihat cara kerja',
       stageCaption: 'Pratinjau ruang kerja interaktif — klik alat, klip timeline, atau muat videomu sendiri.',
+      threadsHint:
+        'Threads: tempel post yang berisi video. Post teks atau gambar belum bisa diimpor.',
     },
     trustStrip: [
       { label: 'Dibuat untuk kreator', bold: true },

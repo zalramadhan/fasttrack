@@ -351,6 +351,13 @@ export function HeroSection({
                 </p>
               )}
 
+              {loadedMedia?.platform === 'Threads' && (
+                <p className="mt-2 flex items-start gap-2 rounded-[10px] border border-[#E8B84A]/25 bg-[#E8B84A]/8 px-3 py-2 text-left text-[11px] leading-relaxed text-[#E8C987]">
+                  <span aria-hidden="true" className="mt-px font-bold">!</span>
+                  <span>{t.threadsHint}</span>
+                </p>
+              )}
+
               {loadedMedia && (
                 <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-[#C3F36B]/30 bg-[#C3F36B]/10 px-3 py-2 text-xs text-[#F4F5F1]">
                   <span className="truncate font-medium">

@@ -42,6 +42,7 @@ export default function StartScreen({
   const [busy, setBusy] = useState<null | "link" | "upload">(null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const isThreadsLink = /threads\.(?:net|com)/i.test(link);
 
   async function handleFile(file: File | undefined | null) {
     if (!file || busy) return;
@@ -179,6 +180,14 @@ export default function StartScreen({
                   )}
                 </button>
               </div>
+
+              {isThreadsLink && (
+                <p className="mx-3 mt-1.5 text-[10.5px] leading-relaxed text-amber-700 dark:text-amber-300">
+                  {lang === "id"
+                    ? "Post Threads harus berisi video. Post teks atau gambar belum bisa diimpor."
+                    : "The Threads post must contain a video. Text-only and image posts cannot be imported."}
+                </p>
+              )}
 
               <div className="my-1.5 flex items-center gap-2 px-3 text-[10px] uppercase tracking-[0.12em] text-muted">
                 <span className="h-px flex-1 bg-line" />

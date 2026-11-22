@@ -118,7 +118,7 @@ export async function downloadThreadsVideo(url: string, destDir: string) {
 
   if (!videoUrl) {
     throw new Error(
-      "Video Threads tidak ditemukan. Pastikan post publik dan berisi video, bukan hanya gambar.",
+      "Video Threads tidak ditemukan. Post Threads ini mungkin hanya berisi teks atau gambar, bukan video.",
     );
   }
 

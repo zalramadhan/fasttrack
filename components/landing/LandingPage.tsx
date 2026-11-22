@@ -126,6 +126,7 @@ export default function LandingPage({
           mode={authMode}
           locale={locale}
           mediaLabel={loadedMedia?.label}
+          continueToEditor={Boolean(loadedMedia)}
           onClose={() => setAuthMode(null)}
           onSwitch={setAuthMode}
         />

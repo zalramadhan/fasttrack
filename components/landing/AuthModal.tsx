@@ -20,6 +20,7 @@ interface AuthModalProps {
   mode: AuthMode | null;
   locale: Locale;
   mediaLabel?: string;
+  continueToEditor?: boolean;
   onClose: () => void;
   onSwitch: (next: AuthMode) => void;
 }
@@ -104,7 +105,14 @@ const copy = {
   },
 };
 
-export function AuthModal({ mode, locale, mediaLabel, onClose, onSwitch }: AuthModalProps) {
+export function AuthModal({
+  mode,
+  locale,
+  mediaLabel,
+  continueToEditor = false,
+  onClose,
+  onSwitch,
+}: AuthModalProps) {
   const t = copy[locale];
   const isLogin = mode === "login";
   const [busy, setBusy] = useState(false);
@@ -167,8 +175,13 @@ export function AuthModal({ mode, locale, mediaLabel, onClose, onSwitch }: AuthM
         setBusy(false);
         return;
       }
+      if (continueToEditor) {
+        // The queued link or file is picked up by /editor after auth.
+        window.location.assign("/editor");
+        return;
+      }
       // The modal lives on `/`, where assigning the same URL is a no-op.
-      // Reload so the server sees the new session and renders the workspace.
+      // Reload so the server sees the new session and renders the landing.
       window.location.reload();
     } catch {
       setError(t.genericError);
