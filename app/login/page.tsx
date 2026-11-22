@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
+import { landingFontClass } from "../fonts";
 import { getCurrentUser } from "@/lib/server/auth";
 
 export const dynamic = "force-dynamic";
@@ -7,5 +8,5 @@ export const dynamic = "force-dynamic";
 export default async function LoginPage() {
   const user = await getCurrentUser();
   if (user) redirect("/");
-  return <AuthForm mode="login" />;
+  return <AuthForm mode="login" fontClass={landingFontClass} />;
 }

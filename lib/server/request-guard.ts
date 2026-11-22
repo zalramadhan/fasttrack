@@ -17,7 +17,24 @@ export function isSameOriginRequest(req: Request) {
 
   try {
     const received = new URL(origin).origin;
-    const allowed = new Set<string>([new URL(req.url).origin]);
+    const requestUrl = new URL(req.url);
+    const allowed = new Set<string>([requestUrl.origin]);
+
+    // Next can rewrite req.url to the server's canonical host (for example
+    // localhost while the browser opened 127.0.0.1). Trust the actual Host
+    // header too so same-origin posts work on every valid hostname.
+    const host = (req.headers.get("x-forwarded-host") ?? req.headers.get("host"))
+      ?.split(",")[0]
+      ?.trim();
+    if (host) {
+      const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+      const protocol =
+        forwardedProto === "http" || forwardedProto === "https"
+          ? forwardedProto
+          : requestUrl.protocol.replace(":", "");
+      allowed.add(`${protocol}://${host}`);
+    }
+
     if (process.env.APP_URL) {
       allowed.add(new URL(process.env.APP_URL).origin);
     }
