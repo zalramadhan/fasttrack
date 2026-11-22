@@ -134,6 +134,15 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             </button>
           </form>
 
+          <div className="mt-3">
+            <a
+              href="/api/auth/google"
+              className="btn w-full justify-center"
+            >
+              {t("auth.google")}
+            </a>
+          </div>
+
           <p className="mt-4 text-center text-[12px] text-muted">
             {t(isLogin ? "auth.needAccount" : "auth.haveAccount")}{" "}
             <a

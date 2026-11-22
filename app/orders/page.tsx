@@ -10,7 +10,7 @@ export default async function OrdersPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const orders = listOrdersByUser(user.id).map((row) => ({
+  const orders = (await listOrdersByUser(user.id)).map((row) => ({
     id: row.id,
     code: row.code,
     amount: row.amount,

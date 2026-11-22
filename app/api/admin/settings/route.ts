@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Akses admin diperlukan." }, { status: 403 });
   }
   return NextResponse.json({
-    settings: { shopeeUrl: getSetting("shopee_url") ?? "" },
+    settings: { shopeeUrl: (await getSetting("shopee_url")) ?? "" },
   });
 }
 
@@ -41,8 +41,8 @@ export async function PATCH(req: Request) {
       shopeeUrl = parsed.toString();
     }
 
-    setSetting("shopee_url", shopeeUrl, admin.id);
-    logAdminAction({
+    await setSetting("shopee_url", shopeeUrl, admin.id);
+    await logAdminAction({
       adminId: admin.id,
       action: "settings.shopee",
       detail: shopeeUrl || "cleared",

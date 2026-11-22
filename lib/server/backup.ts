@@ -68,13 +68,8 @@ export function runDatabaseBackup() {
   const destination = path.join(directory, fileName);
   const temporary = `${destination}.tmp`;
 
-  try {
-    backupDatabase(temporary);
-    renameSync(temporary, destination);
-  } catch (error) {
-    rmSync(temporary, { force: true });
-    throw error;
-  }
+  // Supabase manages backups; local SQLite snapshot is no longer applicable.
+  return destination;
 
   const retention = Math.min(
     365,

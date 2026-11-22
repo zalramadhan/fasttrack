@@ -47,6 +47,7 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageToggle from "./LanguageToggle";
 import AccountMenu from "./AccountMenu";
 import VerifyEmailBanner from "./VerifyEmailBanner";
+import OnboardingTutorial from "./OnboardingTutorial";
 import LogoMark from "./Logo";
 import { useI18n, type MessageKey } from "@/lib/i18n";
 import { isLoopEffect } from "@/lib/text-animations";
@@ -972,6 +973,7 @@ export default function Editor({
         </>
         )}
       </main>
+      <OnboardingTutorial />
     </div>
   );
 }

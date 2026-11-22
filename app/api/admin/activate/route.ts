@@ -15,11 +15,11 @@ export async function POST(req: Request) {
     const body = (await req.json()) as Record<string, unknown>;
     const userId = String(body.userId ?? "");
     const note = String(body.note ?? "").trim().slice(0, 500);
-    if (!getUserForAdmin(userId)) {
+    if (!(await getUserForAdmin(userId))) {
       return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
     }
-    const user = activateLifetime(userId, admin.id, note);
-    logAdminAction({
+    const user = await activateLifetime(userId, admin.id, note);
+    await logAdminAction({
       adminId: admin.id,
       action: "user.activate_lifetime",
       targetId: userId,

@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { supabaseConfigured } from "@/lib/supabase/admin";
+import { refreshSession } from "@/lib/supabase/proxy";
 
 function constantTimeEqual(a: string, b: string) {
   const left = new TextEncoder().encode(a);
@@ -20,10 +22,16 @@ function unauthorized() {
   });
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const username = process.env.FASTTRACK_USER || "fasttrack";
   const password = process.env.FASTTRACK_PASSWORD || "";
-  if (!password) return NextResponse.next();
+
+  let response = NextResponse.next();
+  if (supabaseConfigured()) {
+    response = await refreshSession(request);
+  }
+
+  if (!password) return response;
 
   const header = request.headers.get("authorization");
   if (header?.startsWith("Basic ")) {
@@ -34,7 +42,7 @@ export function proxy(request: NextRequest) {
         const user = decoded.slice(0, separator);
         const entered = decoded.slice(separator + 1);
         if (constantTimeEqual(user, username) && constantTimeEqual(entered, password)) {
-          return NextResponse.next();
+          return response;
         }
       }
     } catch {

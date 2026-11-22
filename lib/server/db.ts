@@ -1,362 +1,201 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync } from "node:fs";
-import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { PublicUser, UserPlan, UserRole } from "@/lib/types";
 
-type UserRow = {
-  id: string;
-  email: string;
-  password_hash: string;
-  name: string;
-  whatsapp: string;
-  role: UserRole;
-  plan: UserPlan;
-  status: "active" | "suspended";
-  created_at: number;
-  activated_at: number | null;
-  email_verified_at: number | null;
-};
-
-type SessionRow = UserRow & { expires_at: number };
-
-type OrderRow = {
-  id: string;
-  code: string;
-  user_id: string;
-  amount: number;
-  status: "pending" | "paid" | "cancelled";
-  note: string;
-  created_at: number;
-  confirmed_at: number | null;
-  confirmed_by: string | null;
-};
-
-const dataDir = path.join(process.cwd(), "data");
-mkdirSync(dataDir, { recursive: true });
-
-const db = new DatabaseSync(
-  process.env.DATABASE_PATH || path.join(dataDir, "app.db"),
-);
-
-const schema = `
-  PRAGMA foreign_keys = ON;
-
-  CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    name TEXT NOT NULL DEFAULT '',
-    whatsapp TEXT NOT NULL DEFAULT '',
-    role TEXT NOT NULL DEFAULT 'user',
-    plan TEXT NOT NULL DEFAULT 'free',
-    status TEXT NOT NULL DEFAULT 'active',
-    created_at INTEGER NOT NULL,
-    activated_at INTEGER,
-    activated_by TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS sessions (
-    token_hash TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS orders (
-    id TEXT PRIMARY KEY,
-    code TEXT NOT NULL UNIQUE,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    amount INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    note TEXT NOT NULL DEFAULT '',
-    created_at INTEGER NOT NULL,
-    confirmed_at INTEGER,
-    confirmed_by TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS rate_limits (
-    key TEXT PRIMARY KEY,
-    count INTEGER NOT NULL,
-    reset_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS projects (
-    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    data TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS email_tokens (
-    token_hash TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL,
-    updated_by TEXT
-  );
-
-  CREATE TABLE IF NOT EXISTS admin_audit (
-    id TEXT PRIMARY KEY,
-    admin_id TEXT NOT NULL,
-    action TEXT NOT NULL,
-    target_id TEXT NOT NULL DEFAULT '',
-    detail TEXT NOT NULL DEFAULT '',
-    created_at INTEGER NOT NULL
-  );
-
-  CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
-  CREATE INDEX IF NOT EXISTS orders_user ON orders(user_id);
-  CREATE INDEX IF NOT EXISTS rate_limits_reset ON rate_limits(reset_at);
-  CREATE INDEX IF NOT EXISTS email_tokens_user ON email_tokens(user_id);
-  CREATE INDEX IF NOT EXISTS orders_status ON orders(status, created_at);
-  CREATE INDEX IF NOT EXISTS admin_audit_created ON admin_audit(created_at);
-`;
-
-function wait(ms: number) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+function nowMs() {
+  return Date.now();
 }
 
-// Several build workers can open the database at once. Keep each statement
-// waiting briefly, then retry the whole transaction instead of failing the build.
-for (let attempt = 0; ; attempt += 1) {
-  try {
-    db.exec("PRAGMA busy_timeout = 15000; PRAGMA journal_mode = WAL;");
-    db.exec(schema);
-    // Additive migrations for databases created by earlier builds.
-    const userColumns = new Set(
-      (db.prepare("PRAGMA table_info(users)").all() as { name: string }[]).map(
-        (column) => column.name,
-      ),
-    );
-    if (!userColumns.has("email_verified_at")) {
-      db.exec("ALTER TABLE users ADD COLUMN email_verified_at INTEGER");
-      // Accounts created before email verification existed are trusted.
-      db.exec("UPDATE users SET email_verified_at = created_at");
-    }
-    break;
-  } catch (error) {
-    const locked =
-      error instanceof Error && /database is locked|SQLITE_BUSY/i.test(error.message);
-    if (!locked || attempt >= 4) throw error;
-    wait(250 * (attempt + 1));
-  }
-}
-
-function publicUser(row: UserRow): PublicUser {
+function toPublicUser(row: Record<string, unknown>): PublicUser {
   return {
-    id: row.id,
-    email: row.email,
-    name: row.name,
-    whatsapp: row.whatsapp,
-    role: row.role,
-    plan: row.plan,
-    status: row.status,
-    createdAt: row.created_at,
-    activatedAt: row.activated_at,
-    emailVerifiedAt: row.email_verified_at ?? null,
+    id: String(row.id),
+    email: String(row.email ?? ""),
+    name: String(row.name ?? ""),
+    whatsapp: String(row.whatsapp ?? ""),
+    role: (row.role as UserRole) ?? "user",
+    plan: (row.plan as UserPlan) ?? "free",
+    status: (row.status as "active" | "suspended") ?? "active",
+    createdAt: Number(row.created_at ?? 0),
+    activatedAt: row.activated_at != null ? Number(row.activated_at) : null,
+    emailVerifiedAt: row.email_verified_at != null ? Number(row.email_verified_at) : null,
   };
 }
 
-export function findUserByEmail(email: string) {
-  const row = db
-    .prepare("SELECT * FROM users WHERE email = ?")
-    .get(email) as UserRow | undefined;
-  return row ? { row, user: publicUser(row) } : null;
+export async function findUserByEmail(email: string) {
+  const { data } = await createAdminClient()
+    .from("profiles")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+  if (!data) return null;
+  return { row: data, user: toPublicUser(data as Record<string, unknown>) };
 }
 
-export function findUserById(id: string) {
-  const row = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as
-    | UserRow
-    | undefined;
-  return row ? { row, user: publicUser(row) } : null;
+export async function findUserById(id: string) {
+  const { data } = await createAdminClient()
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+  return { row: data, user: toPublicUser(data as Record<string, unknown>) };
 }
 
-export function createUser(input: {
+export async function createUser(input: {
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
   name: string;
-  whatsapp: string;
+  whatsapp?: string;
   role: UserRole;
+  googleSub?: string;
 }) {
+  // Profile creation is handled by trigger on auth.users; this helper is kept
+  // for compatibility but should not be used directly in Supabase mode.
   const id = randomUUID();
-  const now = Date.now();
-  db.prepare(
-    `INSERT INTO users
-      (id, email, password_hash, name, whatsapp, role, plan, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, 'free', 'active', ?)`,
-  ).run(
-    id,
-    input.email,
-    input.passwordHash,
-    input.name,
-    input.whatsapp,
-    input.role,
-    now,
-  );
-  return findUserById(id)!.user;
+  const now = nowMs();
+  const { data, error } = await createAdminClient()
+    .from("profiles")
+    .insert({
+      id,
+      email: input.email,
+      name: input.name,
+      whatsapp: input.whatsapp ?? "",
+      role: input.role,
+      plan: "free",
+      status: "active",
+      created_at: now,
+      email_verified_at: input.googleSub ? now : null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return toPublicUser(data as Record<string, unknown>);
 }
 
-export function markEmailVerified(userId: string) {
-  db.prepare("UPDATE users SET email_verified_at = ? WHERE id = ?").run(
-    Date.now(),
-    userId,
-  );
-  return findUserById(userId)?.user ?? null;
+export async function findUserByGoogleSub(_sub: string) {
+  // Supabase Auth manages google identity; profiles keyed by auth user id.
+  return null;
 }
 
-export function createEmailToken(tokenHash: string, userId: string, expiresAt: number) {
-  db.prepare("DELETE FROM email_tokens WHERE user_id = ?").run(userId);
-  db.prepare(
-    "INSERT INTO email_tokens (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
-  ).run(tokenHash, userId, expiresAt, Date.now());
+export async function linkGoogleSub(_userId: string, _sub: string) {
+  return null;
 }
 
-export function consumeEmailToken(tokenHash: string) {
-  const row = db
-    .prepare("SELECT user_id, expires_at FROM email_tokens WHERE token_hash = ?")
-    .get(tokenHash) as { user_id: string; expires_at: number } | undefined;
-  if (!row) return null;
-  db.prepare("DELETE FROM email_tokens WHERE token_hash = ?").run(tokenHash);
-  if (row.expires_at <= Date.now()) return null;
-  return row.user_id;
+export async function markEmailVerified(userId: string) {
+  const now = nowMs();
+  await createAdminClient()
+    .from("profiles")
+    .update({ email_verified_at: now })
+    .eq("id", userId);
+  return (await findUserById(userId))?.user ?? null;
 }
 
-export function createSession(tokenHash: string, userId: string, expiresAt: number) {
-  db.prepare(
-    "INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
-  ).run(tokenHash, userId, expiresAt, Date.now());
+// Email token helpers (no-op in Supabase mode; verification handled by Supabase Auth).
+export async function createEmailToken() {}
+export async function consumeEmailToken() {
+  return null;
 }
 
-export function findSessionUser(tokenHash: string) {
-  const row = db
-    .prepare(
-      `SELECT u.*, s.expires_at FROM sessions s
-       JOIN users u ON u.id = s.user_id
-       WHERE s.token_hash = ?`,
-    )
-    .get(tokenHash) as SessionRow | undefined;
-  if (!row) return null;
-  if (row.expires_at <= Date.now()) {
-    deleteSession(tokenHash);
-    return null;
-  }
-  if (row.status !== "active") return null;
-  return publicUser(row);
+// Session helpers are no-ops; Supabase Auth manages sessions.
+export async function createSession() {}
+export async function findSessionUser() {
+  return null;
+}
+export async function deleteSession() {}
+
+export async function getPendingOrder(userId: string) {
+  const { data } = await createAdminClient()
+    .from("orders")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data as any;
 }
 
-export function deleteSession(tokenHash: string) {
-  db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(tokenHash);
+export async function listOrdersByUser(userId: string) {
+  const { data } = await createAdminClient()
+    .from("orders")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  return (data ?? []) as any[];
 }
 
-export function getPendingOrder(userId: string) {
-  return db
-    .prepare(
-      "SELECT * FROM orders WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
-    )
-    .get(userId) as OrderRow | undefined;
+export async function createOrder(userId: string, amount: number, code: string) {
+  const now = nowMs();
+  const { data } = await createAdminClient()
+    .from("orders")
+    .insert({ id: randomUUID(), code, user_id: userId, amount, status: "pending", created_at: now })
+    .select()
+    .single();
+  return data as any;
 }
 
-export function listOrdersByUser(userId: string) {
-  return db
-    .prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 100")
-    .all(userId) as OrderRow[];
+export async function orderCodeExists(code: string) {
+  const { data } = await createAdminClient()
+    .from("orders")
+    .select("code")
+    .eq("code", code)
+    .maybeSingle();
+  return Boolean(data);
 }
 
-export function createOrder(userId: string, amount: number, code: string) {
-  const id = randomUUID();
-  const now = Date.now();
-  db.prepare(
-    "INSERT INTO orders (id, code, user_id, amount, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)",
-  ).run(id, code, userId, amount, now);
-  return db.prepare("SELECT * FROM orders WHERE id = ?").get(id) as OrderRow;
+export async function listUsersWithPendingOrder() {
+  const { data } = await createAdminClient().from("profiles").select("*").order("created_at", { ascending: false });
+  return (data ?? []) as any[];
 }
 
-export function orderCodeExists(code: string) {
-  return Boolean(
-    db.prepare("SELECT 1 FROM orders WHERE code = ?").get(code),
-  );
+export async function activateLifetime(userId: string, adminId: string, note = "") {
+  const now = nowMs();
+  await createAdminClient().from("profiles").update({ plan: "lifetime", activated_at: now, activated_by: adminId }).eq("id", userId);
+  await createAdminClient().from("orders").update({ status: "paid", note, confirmed_at: now, confirmed_by: adminId }).eq("user_id", userId).eq("status", "pending");
+  return (await findUserById(userId))?.user ?? null;
 }
 
-export function listUsersWithPendingOrder() {
-  return db
-    .prepare(
-      `SELECT u.*, o.code AS pending_code, o.created_at AS pending_created_at
-       FROM users u
-       LEFT JOIN orders o ON o.user_id = u.id AND o.status = 'pending'
-       ORDER BY u.created_at DESC`,
-    )
-    .all() as (UserRow & {
-    pending_code: string | null;
-    pending_created_at: number | null;
-  })[];
+export async function getUserForAdmin(id: string) {
+  return (await findUserById(id))?.user ?? null;
 }
 
-export function activateLifetime(userId: string, adminId: string, note = "") {
-  const now = Date.now();
-  db.prepare(
-    `UPDATE users
-     SET plan = 'lifetime', activated_at = ?, activated_by = ?
-     WHERE id = ?`,
-  ).run(now, adminId, userId);
-  db.prepare(
-    `UPDATE orders
-     SET status = 'paid', note = ?, confirmed_at = ?, confirmed_by = ?
-     WHERE user_id = ? AND status = 'pending'`,
-  ).run(note, now, adminId, userId);
-  return findUserById(userId)?.user ?? null;
+export async function rateLimitRetryAfter(key: string, limit: number) {
+  const { data } = await createAdminClient().from("rate_limits").select("count,reset_at").eq("key", key).maybeSingle();
+  if (!data) return 0;
+  const now = nowMs();
+  if (data.reset_at <= now || data.count < limit) return 0;
+  return Math.max(1, Math.ceil((data.reset_at - now) / 1000));
 }
 
-export function getUserForAdmin(id: string) {
-  return findUserById(id)?.user ?? null;
-}
-
-type RateLimitRow = { count: number; reset_at: number };
-
-export function rateLimitRetryAfter(key: string, limit: number) {
-  const now = Date.now();
-  const row = db
-    .prepare("SELECT count, reset_at FROM rate_limits WHERE key = ?")
-    .get(key) as RateLimitRow | undefined;
-  if (!row || row.reset_at <= now || row.count < limit) return 0;
-  return Math.max(1, Math.ceil((row.reset_at - now) / 1000));
-}
-
-export function recordRateLimit(key: string, limit: number, windowMs: number) {
-  const now = Date.now();
-  const resetAt = now + windowMs;
-  const row = db
-    .prepare("SELECT count, reset_at FROM rate_limits WHERE key = ?")
-    .get(key) as RateLimitRow | undefined;
-
-  if (!row || row.reset_at <= now) {
-    db.prepare(
-      `INSERT INTO rate_limits (key, count, reset_at) VALUES (?, 1, ?)
-       ON CONFLICT(key) DO UPDATE SET count = 1, reset_at = excluded.reset_at`,
-    ).run(key, resetAt);
+export async function recordRateLimit(key: string, limit: number, windowMs: number) {
+  const now = nowMs();
+  const { data: existing } = await createAdminClient().from("rate_limits").select("count,reset_at").eq("key", key).maybeSingle();
+  if (!existing || existing.reset_at <= now) {
+    await createAdminClient().from("rate_limits").upsert({ key, count: 1, reset_at: now + windowMs });
     return 0;
   }
-
-  const count = row.count + 1;
-  db.prepare("UPDATE rate_limits SET count = ? WHERE key = ?").run(count, key);
+  const count = existing.count + 1;
+  await createAdminClient().from("rate_limits").update({ count }).eq("key", key);
   if (count <= limit) return 0;
-  return Math.max(1, Math.ceil((row.reset_at - now) / 1000));
+  return Math.max(1, Math.ceil((existing.reset_at - now) / 1000));
 }
 
-export function consumeRateLimit(key: string, limit: number, windowMs: number) {
-  const blocked = rateLimitRetryAfter(key, limit);
+export async function consumeRateLimit(key: string, limit: number, windowMs: number) {
+  // Prefer DB function if available.
+  try {
+    const { data, error } = await createAdminClient().rpc("consume_rate_limit", { p_key: key, p_limit: limit, p_window_ms: windowMs });
+    if (!error && typeof data === "number") return data;
+  } catch {
+    // fall through
+  }
+  const blocked = await rateLimitRetryAfter(key, limit);
   if (blocked) return blocked;
   return recordRateLimit(key, limit, windowMs);
 }
 
-export function clearRateLimit(key: string) {
-  db.prepare("DELETE FROM rate_limits WHERE key = ?").run(key);
+export async function clearRateLimit(key: string) {
+  await createAdminClient().from("rate_limits").delete().eq("key", key);
 }
 
 export type ProjectRow = {
@@ -366,125 +205,69 @@ export type ProjectRow = {
   updated_at: number;
 };
 
-export function getProject(userId: string) {
-  return db
-    .prepare("SELECT * FROM projects WHERE user_id = ?")
-    .get(userId) as ProjectRow | undefined;
+export async function getProject(userId: string) {
+  const { data } = await createAdminClient().from("projects").select("*").eq("user_id", userId).maybeSingle();
+  if (!data) return undefined;
+  return { user_id: data.user_id, data: JSON.stringify(data.data), created_at: data.created_at, updated_at: data.updated_at } as ProjectRow;
 }
 
-export function saveProject(userId: string, data: string) {
-  const now = Date.now();
-  db.prepare(
-    `INSERT INTO projects (user_id, data, created_at, updated_at)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
-  ).run(userId, data, now, now);
+export async function saveProject(userId: string, data: string) {
+  const now = nowMs();
+  const parsed = JSON.parse(data);
+  await createAdminClient().from("projects").upsert({ user_id: userId, data: parsed, created_at: now, updated_at: now });
   return now;
 }
 
-export function getSetting(key: string) {
-  const row = db
-    .prepare("SELECT value FROM settings WHERE key = ?")
-    .get(key) as { value: string } | undefined;
-  return row?.value ?? null;
+export async function getSetting(key: string) {
+  const { data } = await createAdminClient().from("settings").select("value").eq("key", key).maybeSingle();
+  return data?.value ?? null;
 }
 
-export function setSetting(key: string, value: string, adminId: string) {
-  const now = Date.now();
-  db.prepare(
-    `INSERT INTO settings (key, value, updated_at, updated_by)
-     VALUES (?, ?, ?, ?)
-     ON CONFLICT(key) DO UPDATE SET
-       value = excluded.value,
-       updated_at = excluded.updated_at,
-       updated_by = excluded.updated_by`,
-  ).run(key, value, now, adminId);
+export async function setSetting(key: string, value: string, adminId: string) {
+  const now = nowMs();
+  await createAdminClient().from("settings").upsert({ key, value, updated_at: now, updated_by: adminId });
 }
 
-export function logAdminAction(input: {
-  adminId: string;
-  action: string;
-  targetId?: string;
-  detail?: string;
-}) {
-  db.prepare(
-    "INSERT INTO admin_audit (id, admin_id, action, target_id, detail, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(
-    randomUUID(),
-    input.adminId,
-    input.action,
-    input.targetId ?? "",
-    input.detail ?? "",
-    Date.now(),
-  );
+export async function logAdminAction(input: { adminId: string; action: string; targetId?: string; detail?: string }) {
+  await createAdminClient().from("admin_audit").insert({
+    id: randomUUID(),
+    admin_id: input.adminId,
+    action: input.action,
+    target_id: input.targetId ?? "",
+    detail: input.detail ?? "",
+    created_at: nowMs(),
+  });
 }
 
-export function setUserStatus(
-  userId: string,
-  status: "active" | "suspended",
-) {
-  db.prepare("UPDATE users SET status = ? WHERE id = ?").run(status, userId);
-  return findUserById(userId)?.user ?? null;
+export async function setUserStatus(userId: string, status: "active" | "suspended") {
+  await createAdminClient().from("profiles").update({ status }).eq("id", userId);
+  return (await findUserById(userId))?.user ?? null;
 }
 
-export function cancelOrder(orderId: string, adminId: string, note = "") {
-  const result = db
-    .prepare(
-      `UPDATE orders
-       SET status = 'cancelled', note = ?, confirmed_at = ?, confirmed_by = ?
-       WHERE id = ? AND status = 'pending'`,
-    )
-    .run(note, Date.now(), adminId, orderId);
-  return result.changes > 0;
+export async function cancelOrder(orderId: string, adminId: string, note = "") {
+  const { data } = await createAdminClient()
+    .from("orders")
+    .update({ status: "cancelled", note, confirmed_at: nowMs(), confirmed_by: adminId })
+    .eq("id", orderId)
+    .eq("status", "pending")
+    .select();
+  return (data?.length ?? 0) > 0;
 }
 
-export function getAdminStats() {
-  const users = db
-    .prepare(
-      `SELECT
-         COUNT(*) AS total,
-         SUM(CASE WHEN plan = 'lifetime' THEN 1 ELSE 0 END) AS lifetime,
-         SUM(CASE WHEN plan = 'free' THEN 1 ELSE 0 END) AS free,
-         SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) AS suspended,
-         SUM(CASE WHEN email_verified_at IS NULL THEN 1 ELSE 0 END) AS unverified
-       FROM users`,
-    )
-    .get() as {
-    total: number;
-    lifetime: number | null;
-    free: number | null;
-    suspended: number | null;
-    unverified: number | null;
-  };
-  const orders = db
-    .prepare(
-      `SELECT
-         SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-         SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) AS paid,
-         SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled,
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS revenue
-       FROM orders`,
-    )
-    .get() as {
-    pending: number | null;
-    paid: number | null;
-    cancelled: number | null;
-    revenue: number | null;
-  };
-  const projects = db
-    .prepare("SELECT COUNT(*) AS total FROM projects")
-    .get() as { total: number };
+export async function getAdminStats() {
+  const { data } = await createAdminClient().rpc("admin_stats");
+  const stats = (data ?? {}) as Record<string, unknown>;
   return {
-    users: users.total,
-    lifetime: users.lifetime ?? 0,
-    free: users.free ?? 0,
-    suspended: users.suspended ?? 0,
-    unverified: users.unverified ?? 0,
-    pendingOrders: orders.pending ?? 0,
-    paidOrders: orders.paid ?? 0,
-    cancelledOrders: orders.cancelled ?? 0,
-    revenue: orders.revenue ?? 0,
-    projects: projects.total,
+    users: Number(stats.users ?? 0),
+    lifetime: Number(stats.lifetime ?? 0),
+    free: Number(stats.free ?? 0),
+    suspended: Number(stats.suspended ?? 0),
+    unverified: Number(stats.unverified ?? 0),
+    pendingOrders: Number(stats.pendingOrders ?? 0),
+    paidOrders: Number(stats.paidOrders ?? 0),
+    cancelledOrders: Number(stats.cancelledOrders ?? 0),
+    revenue: Number(stats.revenue ?? 0),
+    projects: Number(stats.projects ?? 0),
   };
 }
 
@@ -500,18 +283,30 @@ export type AdminOrder = {
   userName: string;
 };
 
-export function listAdminOrders() {
-  return db
-    .prepare(
-      `SELECT o.id, o.code, o.amount, o.status, o.note,
-              o.created_at AS createdAt, o.confirmed_at AS confirmedAt,
-              u.email AS userEmail, u.name AS userName
-       FROM orders o
-       JOIN users u ON u.id = o.user_id
-       ORDER BY o.created_at DESC
-       LIMIT 250`,
-    )
-    .all() as AdminOrder[];
+export async function listAdminOrders() {
+  const { data } = await createAdminClient()
+    .from("orders")
+    .select("*, profiles!orders_user_id_fkey(email,name)")
+    .order("created_at", { ascending: false })
+    .limit(250);
+  // Fallback: if join not available, fetch profiles separately.
+  const orders = data ?? [];
+  const result: AdminOrder[] = [];
+  for (const o of orders) {
+    const prof = (o as any).profiles ?? {};
+    result.push({
+      id: o.id,
+      code: o.code,
+      amount: o.amount,
+      status: o.status,
+      note: o.note,
+      createdAt: o.created_at,
+      confirmedAt: o.confirmed_at,
+      userEmail: prof.email ?? "",
+      userName: prof.name ?? "",
+    });
+  }
+  return result;
 }
 
 export type AdminAudit = {
@@ -523,37 +318,39 @@ export type AdminAudit = {
   adminEmail: string;
 };
 
-export function listAdminAudit(limit = 20) {
-  return db
-    .prepare(
-      `SELECT a.id, a.action, a.target_id AS targetId, a.detail,
-              a.created_at AS createdAt, u.email AS adminEmail
-       FROM admin_audit a
-       LEFT JOIN users u ON u.id = a.admin_id
-       ORDER BY a.created_at DESC
-       LIMIT ?`,
-    )
-    .all(limit) as AdminAudit[];
+export async function listAdminAudit(limit = 20) {
+  const { data } = await createAdminClient()
+    .from("admin_audit")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const rows = data ?? [];
+  const result: AdminAudit[] = [];
+  for (const a of rows) {
+    const prof = await findUserById(String(a.admin_id));
+    result.push({
+      id: a.id,
+      action: a.action,
+      targetId: a.target_id,
+      detail: a.detail,
+      createdAt: a.created_at,
+      adminEmail: prof?.user.email ?? "",
+    });
+  }
+  return result;
 }
 
-export function getAdminUsers() {
-  return db
-    .prepare(
-      `SELECT u.*, o.code AS pending_code, o.created_at AS pending_created_at,
-              p.updated_at AS project_updated_at
-       FROM users u
-       LEFT JOIN orders o ON o.user_id = u.id AND o.status = 'pending'
-       LEFT JOIN projects p ON p.user_id = u.id
-       ORDER BY u.created_at DESC`,
-    )
-    .all() as (UserRow & {
-    pending_code: string | null;
-    pending_created_at: number | null;
-    project_updated_at: number | null;
-  })[];
+export async function getAdminUsers() {
+  const { data } = await createAdminClient().rpc("admin_users");
+  const rows = (data ?? []) as any[];
+  return rows.map((r) => ({
+    ...r,
+    pending_code: r.pending_code ?? null,
+    pending_created_at: r.pending_created_at ?? null,
+    project_updated_at: r.project_updated_at ?? null,
+  }));
 }
 
-export function backupDatabase(destination: string) {
-  const escaped = destination.replaceAll("'", "''");
-  db.exec(`VACUUM INTO '${escaped}'`);
+export function backupDatabase() {
+  // No-op in Supabase mode.
 }

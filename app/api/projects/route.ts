@@ -66,7 +66,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const previous = getProject(user.id);
+    const previous = await getProject(user.id);
     const previousIds = previous ? parseAssetIds(previous.data) : new Set<string>();
 
     for (const id of ids) {
@@ -78,7 +78,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const updatedAt = saveProject(user.id, serialized);
+    const updatedAt = await saveProject(user.id, serialized);
 
     for (const id of previousIds) {
       if (!ids.has(id)) await unpinAsset(id, user.id);

@@ -8,10 +8,10 @@ import { ORDER_USER_LIMIT, ORDER_WINDOW_MS, tooManyRequests } from "@/lib/server
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function makeCode() {
+async function makeCode() {
   for (let attempt = 0; attempt < 8; attempt++) {
     const code = `FT-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
-    if (!orderCodeExists(code)) return code;
+    if (!(await orderCodeExists(code))) return code;
   }
   throw new Error("Gagal membuat kode order.");
 }
@@ -25,16 +25,16 @@ export async function POST() {
     return NextResponse.json({ error: "Akun ini sudah lifetime." }, { status: 400 });
   }
 
-  const retryAfter = consumeRateLimit(
+  const retryAfter = await consumeRateLimit(
     `order:user:${user.id}`,
     ORDER_USER_LIMIT,
     ORDER_WINDOW_MS,
   );
   if (retryAfter) return tooManyRequests(retryAfter);
 
-  let order = getPendingOrder(user.id);
+  let order = await getPendingOrder(user.id);
   if (!order) {
-    order = createOrder(user.id, LIFETIME_PRICE, makeCode());
+    order = await createOrder(user.id, LIFETIME_PRICE, await makeCode());
   }
 
   const whatsappUrl = orderWhatsAppUrl({

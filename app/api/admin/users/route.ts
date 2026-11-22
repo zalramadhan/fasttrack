@@ -11,7 +11,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function mapUser(row: ReturnType<typeof getAdminUsers>[number]) {
+function mapUser(row: Awaited<ReturnType<typeof getAdminUsers>>[number]) {
   return {
     id: row.id,
     email: row.email,
@@ -36,7 +36,7 @@ export async function GET() {
   }
 
   return NextResponse.json(
-    { users: getAdminUsers().map(mapUser) },
+    { users: (await getAdminUsers()).map(mapUser) },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -50,7 +50,7 @@ export async function PATCH(req: Request) {
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const userId = String(body.userId ?? "");
-    const target = findUserById(userId);
+    const target = await findUserById(userId);
     if (!target) {
       return NextResponse.json({ error: "User tidak ditemukan." }, { status: 404 });
     }
@@ -62,8 +62,8 @@ export async function PATCH(req: Request) {
     }
 
     if (body.verifyEmail === true) {
-      const user = markEmailVerified(userId);
-      logAdminAction({
+      const user = await markEmailVerified(userId);
+      await logAdminAction({
         adminId: admin.id,
         action: "user.verify_email",
         targetId: userId,
@@ -75,8 +75,8 @@ export async function PATCH(req: Request) {
     if (status !== "active" && status !== "suspended") {
       return NextResponse.json({ error: "Status tidak valid." }, { status: 400 });
     }
-    const user = setUserStatus(userId, status);
-    logAdminAction({
+    const user = await setUserStatus(userId, status);
+    await logAdminAction({
       adminId: admin.id,
       action: status === "suspended" ? "user.suspend" : "user.reactivate",
       targetId: userId,

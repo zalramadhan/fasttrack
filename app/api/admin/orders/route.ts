@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ error: "Akses admin diperlukan." }, { status: 403 });
   }
   return NextResponse.json(
-    { orders: listAdminOrders() },
+    { orders: await listAdminOrders() },
     { headers: { "Cache-Control": "no-store" } },
   );
 }
@@ -35,13 +35,13 @@ export async function PATCH(req: Request) {
     }
 
     const note = String(body.note ?? "").trim().slice(0, 500);
-    if (!cancelOrder(orderId, admin.id, note)) {
+    if (!(await cancelOrder(orderId, admin.id, note))) {
       return NextResponse.json(
         { error: "Order tidak ditemukan atau sudah selesai." },
         { status: 404 },
       );
     }
-    logAdminAction({
+    await logAdminAction({
       adminId: admin.id,
       action: "order.cancel",
       targetId: orderId,

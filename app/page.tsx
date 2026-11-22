@@ -12,7 +12,7 @@ export default async function Page() {
   let projectUpdatedAt: number | null = null;
 
   if (user) {
-    const row = getProject(user.id);
+    const row = await getProject(user.id);
     if (row) {
       projectUpdatedAt = row.updated_at;
       try {
@@ -38,7 +38,7 @@ export default async function Page() {
           ? { project: savedProject, updatedAt: projectUpdatedAt }
           : null
       }
-      shopeeUrl={getSetting("shopee_url") ?? ""}
+      shopeeUrl={(await getSetting("shopee_url")) ?? ""}
       lifetimePrice={LIFETIME_PRICE}
     />
   );

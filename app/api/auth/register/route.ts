@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { adminEmails, createUserSession, hashPassword } from "@/lib/server/auth";
-import { consumeRateLimit, createUser, findUserByEmail } from "@/lib/server/db";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { consumeRateLimit, findUserByEmail } from "@/lib/server/db";
+import { adminEmails } from "@/lib/server/auth";
 import { emailConfigured } from "@/lib/server/email";
 import {
   REGISTER_IP_LIMIT,
@@ -8,7 +10,7 @@ import {
   clientIp,
   tooManyRequests,
 } from "@/lib/server/rate-limit";
-import { appBaseUrl, sendUserVerification } from "@/lib/server/verification";
+import { appBaseUrl } from "@/lib/server/verification";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +18,7 @@ export const dynamic = "force-dynamic";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
-  const retryAfter = consumeRateLimit(
+  const retryAfter = await consumeRateLimit(
     `register:ip:${clientIp(req)}`,
     REGISTER_IP_LIMIT,
     REGISTER_WINDOW_MS,
@@ -34,36 +36,68 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email tidak valid." }, { status: 400 });
     }
     if (password.length < 8 || password.length > 200) {
-      return NextResponse.json(
-        { error: "Password minimal 8 karakter." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Password minimal 8 karakter." }, { status: 400 });
     }
-    if (findUserByEmail(email)) {
+    if (await findUserByEmail(email)) {
       return NextResponse.json({ error: "Email sudah terdaftar." }, { status: 409 });
     }
 
-    const user = createUser({
+    const supabase = await createSupabaseServerClient();
+    const role = adminEmails().includes(email) ? "admin" : "user";
+    const { data, error } = await supabase.auth.signUp({
       email,
-      passwordHash: hashPassword(password),
-      name,
-      whatsapp,
-      role: adminEmails().includes(email) ? "admin" : "user",
+      password,
+      options: {
+        data: { name, whatsapp, role },
+        emailRedirectTo: `${appBaseUrl(req)}/auth/confirm`,
+      },
     });
+    if (error || !data.user) {
+      console.error("[auth/register]", error?.message);
+      return NextResponse.json({ error: "Gagal membuat akun." }, { status: 500 });
+    }
 
-    const verification = await sendUserVerification(
-      user.id,
-      appBaseUrl(req),
-    ).catch((error) => {
-      console.error("[auth/register] verification email", error);
-      return { ok: false as const, error: "Email could not be sent." };
-    });
+    // Ensure profile exists (trigger should create it).
+    const admin = createAdminClient();
+    // Wait a moment? Trigger synchronous. Fetch.
+    let profile = null;
+    for (let i = 0; i < 5; i++) {
+      const { data: p } = await admin.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+      if (p) { profile = p; break; }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (!profile) {
+      // Insert manually as fallback.
+      await admin.from("profiles").insert({
+        id: data.user.id,
+        email,
+        name,
+        whatsapp,
+        role,
+        plan: "free",
+        status: "active",
+        created_at: Date.now(),
+        email_verified_at: null,
+      });
+      const { data: p2 } = await admin.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
+      profile = p2;
+    }
 
-    await createUserSession(user.id);
     return NextResponse.json(
       {
-        user: { ...user, emailVerifiedAt: null },
-        verificationSent: verification.ok,
+        user: {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          whatsapp: profile.whatsapp,
+          role: profile.role,
+          plan: profile.plan,
+          status: profile.status,
+          createdAt: profile.created_at,
+          activatedAt: profile.activated_at,
+          emailVerifiedAt: profile.email_verified_at,
+        },
+        verificationSent: emailConfigured(),
         emailConfigured: emailConfigured(),
       },
       { status: 201 },

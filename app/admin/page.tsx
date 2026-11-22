@@ -19,7 +19,7 @@ export default async function AdminPage() {
   if (!user) redirect("/login");
   if (user.role !== "admin") redirect("/");
 
-  const users = getAdminUsers().map((row) => ({
+  const users = (await getAdminUsers()).map((row) => ({
     id: row.id,
     email: row.email,
     name: row.name,
@@ -35,8 +35,8 @@ export default async function AdminPage() {
     projectUpdatedAt: row.project_updated_at,
   }));
   const storage = await storageUsage();
-  const orders = listAdminOrders().map((row) => ({ ...row }));
-  const audit = listAdminAudit(20).map((row) => ({ ...row }));
+  const orders = (await listAdminOrders()).map((row) => ({ ...row }));
+  const audit = (await listAdminAudit(20)).map((row) => ({ ...row }));
 
   return (
     <AdminPanel
@@ -44,10 +44,10 @@ export default async function AdminPage() {
       users={users}
       orders={orders}
       audit={audit}
-      stats={{ ...getAdminStats() }}
+      stats={{ ...(await getAdminStats()) }}
       backups={listBackups().map((row) => ({ ...row }))}
       storage={storage}
-      shopeeUrl={getSetting("shopee_url") ?? ""}
+      shopeeUrl={(await getSetting("shopee_url")) ?? ""}
       emailConfigured={emailConfigured()}
     />
   );
